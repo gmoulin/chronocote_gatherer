@@ -1,0 +1,55 @@
+@import "variables"; //use bootstrap variables
+
+body {
+	padding-top: 51px;
+}
+
+datalist {
+	display: none;
+}
+
+.next-auction li {
+    text-align: center;
+}
+
+.edit-modal {
+	width: 90%;
+	margin-left: -45%;
+}
+
+.progression-modal {
+	.finished { display: none; }
+
+	.success {
+		color: $successText;
+	}
+
+	.error {
+		color: $errorText;
+	}
+}
+
+.container-list .table {
+	display: none;
+}
+
+.table {
+	thead th,
+	.btn,
+	.nw {
+		white-space: nowrap;
+	}
+
+	.actions {
+		text-align: center;
+	}
+
+	.edit {
+		margin-bottom: 2px;
+	}
+
+	.medium,
+	.full {
+		display: none;
+	}
+}

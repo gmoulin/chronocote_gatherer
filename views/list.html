@@ -1,0 +1,37 @@
+<script type="text/html" id="list_tmpl">
+<%	var item;
+
+	for( i = 0; i < list.length; i += 1 ){
+		item = list[i];
+	%>
+		<tr class="item" data-raw="<%=$.base64.encode( JSON.stringify(item) )%>">
+			<td class="actions">
+				<button class="btn edit btn-warning btn-mini"
+					data-toggle="modal" data-target="#edit_modal"
+					data-itemId="<%=item.id%>"
+				><i class="icon-edit"></i>Modifier</button>
+				<br>
+				<button class="btn delete btn-danger btn-mini"
+					data-toggle="modal" data-target="#confirm_modal"
+					data-itemId="<%=item.id%>"
+				><i class="icon-trash"></i>Supprimer</button>
+			</td>
+			<td><%=item.source%></td>
+			<td><a href="<%=item.source_url%>" target=_blank>lien</a></td>
+			<td><%=item.auction_id%>-<%=item.lot_id%></td>
+			<td><%=item.auction_title%></td>
+			<td class="nw"><%=item.auction_date%></td>
+			<td><%=item.lot_title.truncate(100)%></td>
+			<td><%=item.lot_criteria.truncate(100)%></td>
+			<td><%=item.lot_estimates.replace(/\|/, '<br>')%></td>
+			<td><%=item.lot_price%></td>
+			<td><%=item.lot_currency%></td>
+			<td class="gallery" data-toggle="modal-gallery" data-target="#modal-gallery">
+				<a href="<%=item.img_thumbnail%>" class="thumbnail" data-gallery="gallery" title="vignette"><img src="<%=item.img_thumbnail%>"></a>
+				<a href="<%=item.img_medium%>" class="medium" data-gallery="gallery" title="medium"><img src="<%=item.img_medium%>"></a>
+				<a href="<%=item.img_full%>" class="full" data-gallery="gallery" title="haute définition"><img src="<%=item.img_full%>"></a>
+			</td>
+		</tr>
+	<% } %>
+</script>
+

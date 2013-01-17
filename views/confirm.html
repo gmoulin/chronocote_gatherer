@@ -1,0 +1,18 @@
+<div id="confirm_modal" class="modal hide fade confirm-modal">
+	<div class="modal-header">
+		<button class="close" data-dismiss="modal"><i class="icon-remove-sign"></i></button>
+		<h3>Confirmation de suppression</h3>
+	</div>
+	<div class="modal-body">
+		<form id="delete_form" name="delete_form" method="post" action="" class="delete-form">
+			<input type="hidden" name="action" value="delete" />
+			<input type="hidden" name="id" value="" />
+
+			<p class="lead">Êtes-vous sûre ?</p>
+		</form>
+	</div>
+	<div class="modal-footer">
+		<button type="reset" class="btn btn-warning" data-dismiss="modal">Annuler</button>
+		<button type="submit" class="btn btn-primary" form="delete_form">Confirmer</button>
+	</div>
+</div>

@@ -1,0 +1,149 @@
+<div id="edit_modal" class="modal hide fade edit-modal">
+	<div class="modal-header">
+		<button class="close" data-dismiss="modal"><i class="icon-remove-sign"></i></button>
+		<h3>Formulaire d'édition de candidat</h3>
+	</div>
+	<div class="modal-body">
+		<div class="container-fluid">
+			<form id="edit_form" name="edit_form" method="post" action="" class="edit-form form-horizontal">
+				<div class="wrapper row-fluid"></div>
+			</form>
+			<datalist id="products"></datalist>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button type="reset" class="btn btn-warning" data-dismiss="modal">Annuler</button>
+		<button type="submit" class="btn btn-primary" form="edit_form">Valider</button>
+	</div>
+</div>
+
+<script type="text/html" id="form_tmpl">
+	<div class="span6">
+		<input type="hidden" name="action" value="update" />
+		<input type="hidden" name="id" value="<%=item.id%>" />
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Auction-Lot #</label>
+			<div class="controls span9 well well-small">
+				<%=item.auction_id%>-<%=item.lot_id%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Titre de la vente</label>
+			<div class="controls span9 well well-small">
+				<%=item.auction_title%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Date de la vente</label>
+			<div class="controls span9 well well-small">
+				<%=item.auction_date%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Description du lot</label>
+			<div class="controls span9 well well-small">
+				<%=item.lot_title%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Critères du lot</label>
+			<div class="controls span9 well well-small">
+				<%=item.lot_criteria%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Estimations du lot</label>
+			<div class="controls span9 well well-small">
+				<%=item.lot_estimates.replace(/\|/, '<br>')%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Prix du lot</label>
+			<div class="controls span9 well well-small">
+				<%=item.lot_price%> <%=item.currency%>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Photo du lot</label>
+			<div class="controls span9">
+				<img src="<%=item.img_thumbnail%>">
+			</div>
+		</div>
+	</div>
+	<div class="span5 offset1">
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="product">Produit Chonocote</label>
+			<div class="controls span9">
+				<input type="text" id="product" name="product" list="products" class="control input-large" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="brand">Marque</label>
+			<div class="controls span9">
+				<input type="text" id="brand" brand="brand" class="control input-large" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="model">Modèle</label>
+			<div class="controls span9">
+				<input type="text" id="model" model="model" class="control input-large" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="ref">Référence</label>
+			<div class="controls span9">
+				<input type="text" id="ref" name="ref" class="control input-large" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="case_material">Matériau Boîtier</label>
+			<div class="controls span9">
+				<input type="text" id="case_material" name="case_material" class="control input-small tagManager" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="case_shape">Forme Boîtier</label>
+			<div class="controls span9">
+				<input type="text" id="case_shape" name="case_shape" class="control input-large" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="bracelet">Bracelet</label>
+			<div class="controls span9">
+				<input type="text" id="bracelet" name="bracelet" class="control input-small tagManager" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="movement">Mouvement</label>
+			<div class="controls span9">
+				<input type="text" id="movement" name="movement" class="control input-small tagManager" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="complication">Complication</label>
+			<div class="controls span9">
+				<input type="text" id="complication" name="complication" class="control input-large" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="estimation">Estimation</label>
+			<div class="controls span9">
+				<input type="text" id="estimation" name="estimation" class="control input-small tagManager" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="sale_price">Prix de vente</label>
+			<div class="controls span9">
+				<input type="text" id="sale_price" name="sale_price" class="control input-small tagManager" value="" autocomplete="off">
+			</div>
+		</div>
+	</div>
+</script>

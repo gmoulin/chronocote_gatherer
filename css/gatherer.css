@@ -1,0 +1,58 @@
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\000033}}
+body {
+  padding-top: 51px;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\000037}}
+datalist {
+  display: none;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000311}}
+.next-auction li {
+  text-align: center;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000315}}
+.edit-modal {
+  width: 90%;
+  margin-left: -45%;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000321}}
+.progression-modal .finished {
+  display: none;
+}
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000323}}
+.progression-modal .success {
+  color: #468847;
+}
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000327}}
+.progression-modal .error {
+  color: #b94a48;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000332}}
+.container-list .table {
+  display: none;
+}
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000339}}
+.table thead th,
+.table .btn,
+.table .nw {
+  white-space: nowrap;
+}
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000343}}
+.table .actions {
+  text-align: center;
+}
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000347}}
+.table .edit {
+  margin-bottom: 2px;
+}
+@media -sass-debug-info{filename{font-family:file\:\/\/\/var\/www\/chronocote_gatherer\/sass_src\/lib\/gatherer\.scss}line{font-family:\0000352}}
+.table .medium,
+.table .full {
+  display: none;
+}

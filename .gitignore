@@ -1,0 +1,7 @@
+# folder
+sub
+.sass-cache
+.sass-cache/**/*
+
+# backup files
+*~
