@@ -9,10 +9,10 @@ rescue Bundler::BundlerError => e
 end
 require 'rake'
 
-BOOTSTRAP_CSS = "../css/vendor/bootstrap.css"
-BOOTSTRAP_MIN_CSS = "../css/vendor/bootstrap.min.css"
-BOOTSTRAP_RESPONSIVE_CSS = "../css/vendor/bootstrap-responsive.css"
-BOOTSTRAP_RESPONSIVE_MIN_CSS = "../css/vendor/bootstrap-responsive.min.css"
+BOOTSTRAP_CSS = "../css/bootstrap.css"
+BOOTSTRAP_MIN_CSS = "../css/bootstrap.min.css"
+BOOTSTRAP_RESPONSIVE_CSS = "../css/bootstrap-responsive.css"
+BOOTSTRAP_RESPONSIVE_MIN_CSS = "../css/bootstrap-responsive.min.css"
 GATHERER_CSS = "../css/main.css"
 GATHERER_MIN_CSS = "../css/main.css" #not minified to preserve comment for html5boilerplate build script
 
