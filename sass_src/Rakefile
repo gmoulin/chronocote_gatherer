@@ -14,7 +14,7 @@ BOOTSTRAP_MIN_CSS = "../css/bootstrap.min.css"
 BOOTSTRAP_RESPONSIVE_CSS = "../css/bootstrap-responsive.css"
 BOOTSTRAP_RESPONSIVE_MIN_CSS = "../css/bootstrap-responsive.min.css"
 GATHERER_CSS = "../css/main.css"
-GATHERER_MIN_CSS = "../css/main.css" #not minified to preserve comment for html5boilerplate build script
+GATHERER_MIN_CSS = "../css/main.min.css"
 
 #debug-info to get source maps
 SASS_COMMAND = "sass --precision 16 --load-path lib --debug-info --style"
@@ -51,15 +51,17 @@ task GATHERER_CSS do |target|
 end
 
 task GATHERER_MIN_CSS do |target|
-  sh "#{SASS_COMMAND_PROD} expanded lib/gatherer.scss:#{target}"
+  sh "#{SASS_COMMAND_PROD} compressed lib/gatherer.scss:#{target}"
 end
 
 desc "build regular and compresed versions of bootstrap"
-task :build => [BOOTSTRAP_MIN_CSS, BOOTSTRAP_RESPONSIVE_MIN_CSS, GATHERER_MIN_CSS]
+#task :build => [BOOTSTRAP_MIN_CSS, BOOTSTRAP_RESPONSIVE_MIN_CSS, GATHERER_MIN_CSS]
+task :build => [GATHERER_MIN_CSS]
 
 desc "rebuild regular version of bootstrap when modifications are made"
 task :watch do
-  sh "#{SASS_COMMAND} expanded --watch lib/bootstrap.scss:#{BOOTSTRAP_CSS} lib/responsive.scss:#{BOOTSTRAP_RESPONSIVE_CSS} lib/gatherer.scss:#{GATHERER_CSS}"
+  #sh "#{SASS_COMMAND} expanded --watch lib/bootstrap.scss:#{BOOTSTRAP_CSS} lib/responsive.scss:#{BOOTSTRAP_RESPONSIVE_CSS} lib/gatherer.scss:#{GATHERER_CSS}"
+  sh "#{SASS_COMMAND} expanded --watch lib/gatherer.scss:#{GATHERER_CSS}"
 end
 
 task :default => :build

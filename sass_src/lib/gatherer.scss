@@ -1,11 +1,8 @@
-@import "variables"; //use bootstrap variables
-
-/* html5boilerplate css concat */
-/*==|== bootstrap.min ====*/
-/*==|== bootstrap-responsive.min ====*/
-/*==|== bootstrap-notify ====*/
-/*==|== bootstrap-tagmanager ====*/
-/*==|== bootstrap-image-gallery.min ====*/
+@import "bootstrap";
+@import "responsive";
+@import "../css/bootstrap-image-gallery";
+@import "../css/bootstrap-notify";
+@import "../css/bootstrap-tagmanager";
 
 body {
 	padding-top: 51px;

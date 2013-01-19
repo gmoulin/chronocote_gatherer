@@ -8,11 +8,6 @@
 	<meta name="Description" content="Interface de récupération des données de site de ventes aux enchères" />
 	<meta name="author" content="Guillaume Moulin" />
 
-	<link rel="stylesheet" href="css/bootstrap.css?v=<?php echo $bsTS; ?>">
-	<link rel="stylesheet" href="css/bootstrap-responsive.css?v=<?php echo $bsrTS; ?>">
-	<link rel="stylesheet" href="css/bootstrap-notify.css">
-	<link rel="stylesheet" href="css/bootstrap-tagmanager.css">
-	<link rel="stylesheet" href="css/bootstrap-image-gallery.min.css">
 	<link rel="stylesheet" href="css/main.css?v=<?php echo $cssTS; ?>">
 
 	<script src="js/vendor/modernizr-2.6.2-respond-1.1.0.min.js"></script>
