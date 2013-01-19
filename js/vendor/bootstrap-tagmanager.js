@@ -15,9 +15,8 @@
  * limitations under the License.
  * ========================================================== */
 
-"use strict";
-
 (function (jQuery) {
+  "use strict";
   if (typeof console === "undefined" || typeof console.log === "undefined") {
     console = {};
     console.log = function () { };

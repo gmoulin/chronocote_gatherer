@@ -1,192 +1,15 @@
-'use strict';
-
 var $body, $win, $doc, $formModal, $form, $confirmModal,
 	$progressionModal, $progressionModalBody,
 	$parts, $navLinks, $listContainer, $help,
 	$lightboxImg, $notify,
 	activeTab, target,
 	updating = 0;
-$(document).ready(function(){
-	$win = $(window);
-	$body = $('body');
-	$doc = $(document);
-	$parts = $('.list');
-	$navLinks = $('.nav-collapse').find('a');
-	$help = $('<span class="help-block"></span>');
-	$lightboxImg = $('#lightbox').find('img');
-	$listContainer = $('.container-list');
-	$notify = $('#notify');
-	$formModal = $('#edit_modal').modal({show: false});
-	$form = $('#edit_form');
-	$confirmModal = $('#confirm_modal');
-	$progressionModal = $('#progression_modal').modal({show: false});
-	$progressionModalBody = $progressionModal.find('.modal-body');
-
-	//initial load
-		tabSwitch();
-
-	/** _____________________________________________ NAV **/
-		//tab change via menu and url#hash
-		window.addEventListener("hashchange", tabSwitch, false);
-
-		//menu link
-		$navLinks.click(function(e){
-			//refresh current tab if already active (url#hash will not change)
-			target = $(this).attr('href').substr(1);
-			if( target == activeTab ){
-				e.preventDefault();
-				getList();
-			}
-		});
-
-	/** _____________________________________________ EDIT FORM **/
-		//quick links for title in form
-		var $quickLink = $('<a class="btn btn-info quicklink" target="_blank"><i class="icon-link"></i></a>');
-		$('.edit-form')
-			.on('submit', function(e){
-				e.preventDefault();
-				var $this = $(this);
-
-				//multiple call protection
-				if( $this.data('save_clicked') !== 1 ){
-					$this.data('save_clicked', 1);
-
-					$.ajax({
-						url: 'ajax.php',
-						data: $this.serialize(),
-						type: 'POST',
-						dataType: 'json'
-					})
-					.always(function(){
-						$this.data('save_clicked', 0);
-					})
-					.done(function(data){
-						if( data == 'ok' ){
-							//modal close
-							$formModal.modal('hide');
-
-							//inform user
-							$notify.notify({message: {text: 'Enregistrement réussi'}, type: 'success'}).show();
-
-							getList();
-
-						} else {
-							//form errors display
-							formErrors( data );
-						}
-					});
-				}
-			})
-			.on('change', '.title', function(){
-				var $this = $(this);
-
-				if( $this.val() === '' ){
-					$this.parent().removeClass('input-append')
-						.find('.quicklink').remove();
-				}
-
-				if( $this.siblings('.quicklink').length === 0 ){
-					$this.parent().addClass('input-append');
-					$quickLink.clone()
-						.attr('title', 'Rechercher dans Google Image')
-						.attr('href', 'http://www.google.com/images?q=' + $this.val() + ' watch')
-						.appendTo( $this.parent() );
-				}
-			})
-			.each(function(){
-				//add event listener for dynamic form validation
-				this.addEventListener("invalid", checkField, true);
-				this.addEventListener("blur", checkField, true);
-				this.addEventListener("input", checkField, true);
-			});
-
-	/** _____________________________________________ EDIT ACTION **/
-		$body.on('click', '.edit', function(e){
-			e.preventDefault();
-
-			var $this = $(this),
-				decoder = $('<textarea>'),
-				data = {item: JSON.parse( $.base64.decode( $this.closest('.item').attr('data-raw') ) )};
-
-			//reseting form
-			$form
-				.data('save_clicked', 0)
-				.find('.wrapper').html( tmpl('form_tmpl', data) );
-
-			window.setTimeout(function(){
-				//remove validation classes and focus the first field
-				$form
-					.find('.tagManager').each(function(){ $(this).tagsManager(); }).end()
-					.find('select').blur().end()
-					.find('input').filter('[type="text"]').first().focus();
-			}, 300);
-		});
-
-		$form.find('datalist, select').loadList();
-
-	/** _____________________________________________ DELETE ACTION **/
-		$body.on('click', '.delete', function(e){
-			var $this = $(this),
-				$form = $confirmModal.find('.delete-form');
-
-			//modify modal according to rel
-			$form
-				.find('input')
-					.filter('[name="id"]').val( $this.attr('data-itemId') );
-
-			$form
-				.data('save_clicked', 0)
-				.data('caller', $this);
-		});
-
-		$('.delete-form').submit(function(e){
-			e.preventDefault();
-			var $this = $(this);
-
-			//multiple call protection
-			if( $this.data('save_clicked') != 1 ){
-				$this.data('save_clicked', 1);
-
-				//send delete
-				$.post('ajax.php', $this.serialize(), function(data){
-					if( data == 'ok' ){
-						//inform user
-						$notify.notify({message: {text: 'Suppression réussie'}, type: 'success'}).show();
-
-						//remove deleted item from list
-						$this.data('caller').closest('.item').remove();
-
-						//modal close
-						$confirmModal.modal('hide');
-
-					} else {
-						$notify.notify({message: {text: 'Échec de la suppression'}, type: 'error'}).show();
-						//form errors display
-						//formErrors( data );
-					}
-				});
-			}
-		});
-
-	/** _____________________________________________ PARSE ACTION **/
-		$('#parse').click(function(e){
-			e.preventDefault();
-			var $this = $(this);
-
-			if( $this.hasClass('disabled') ){
-				return;
-			}
-
-			$this.addClass('disabled');
-
-			parseTarget();
-		});
-});
 
 /**
  * change the current tab
  */
 var tabSwitch = function(){
+	'use strict';
 	target = window.location.hash.substr(1) || $navLinks.eq(0).attr('href').substr(1);
 
 	$navLinks.parents().removeClass('active');
@@ -213,6 +36,7 @@ var tabSwitch = function(){
  * 		3: new page on current list (infinite scroll)
  */
 var getList = function( type ){
+	'use strict';
 	//multiple call protection
 	if( updating !== 1 ){
 		updating = 1;
@@ -251,6 +75,7 @@ var getList = function( type ){
  * ajax load <datalist> and <select> content
  */
 $.fn.loadList = function(){
+	'use strict';
 	return this.each(function(){
 		var $this = $(this),
 			key = $this.attr('id'),
@@ -288,6 +113,7 @@ $.fn.loadList = function(){
  * @param object event
  */
 var checkField = function( event ){
+	'use strict';
 	var $el = $(event.target),
 		$controlGroup = $el.closest('.control-group');
 
@@ -313,6 +139,7 @@ var checkField = function( event ){
  * @param array [[field id, message, error type]]
  */
 var formErrors = function( data ){
+	'use strict';
 	$.each(data, function(index, error){
 		$('#'+ error[0])
 			//add error class
@@ -330,6 +157,7 @@ var formErrors = function( data ){
  * @param string msg
  */
 var progress = function( msg, cssClass ){
+	'use strict';
 	if( typeof cssClass == 'undefined' ) cssClass = '';
 
 	$progressionModalBody
@@ -350,6 +178,7 @@ var config = {
 };
 var completedPage = false; //for Trace
 var parseTarget = function(){
+	'use strict';
 	var conf = config[ activeTab ];
 	completedPage = false;
 
@@ -430,6 +259,7 @@ var parseTarget = function(){
  * @param jquery collection $lots
  */
 var parseLots = function( conf, $lots ){
+	'use strict';
 	progress('début analyse');
 	var i = -1,
 		lot, nextDate,
@@ -623,3 +453,182 @@ var parseLots = function( conf, $lots ){
 		return dfd.pipe( lotsLoop(dfd) );
 	}).promise();
 };
+
+
+(function(window, document, $, undefined){
+	'use strict';
+	$win = $(window);
+	$body = $('body');
+	$doc = $(document);
+	$parts = $('.list');
+	$navLinks = $('.nav-collapse').find('a');
+	$help = $('<span class="help-block"></span>');
+	$lightboxImg = $('#lightbox').find('img');
+	$listContainer = $('.container-list');
+	$notify = $('#notify');
+	$formModal = $('#edit_modal').modal({show: false});
+	$form = $('#edit_form');
+	$confirmModal = $('#confirm_modal');
+	$progressionModal = $('#progression_modal').modal({show: false});
+	$progressionModalBody = $progressionModal.find('.modal-body');
+
+	//initial load
+		tabSwitch();
+
+	/** _____________________________________________ NAV **/
+		//tab change via menu and url#hash
+		window.addEventListener("hashchange", tabSwitch, false);
+
+		//menu link
+		$navLinks.click(function(e){
+			//refresh current tab if already active (url#hash will not change)
+			target = $(this).attr('href').substr(1);
+			if( target == activeTab ){
+				e.preventDefault();
+				getList();
+			}
+		});
+
+	/** _____________________________________________ EDIT FORM **/
+		//quick links for title in form
+		var $quickLink = $('<a class="btn btn-info quicklink" target="_blank"><i class="icon-link"></i></a>');
+		$('.edit-form')
+			.on('submit', function(e){
+				e.preventDefault();
+				var $this = $(this);
+
+				//multiple call protection
+				if( $this.data('save_clicked') !== 1 ){
+					$this.data('save_clicked', 1);
+
+					$.ajax({
+						url: 'ajax.php',
+						data: $this.serialize(),
+						type: 'POST',
+						dataType: 'json'
+					})
+					.always(function(){
+						$this.data('save_clicked', 0);
+					})
+					.done(function(data){
+						if( data == 'ok' ){
+							//modal close
+							$formModal.modal('hide');
+
+							//inform user
+							$notify.notify({message: {text: 'Enregistrement réussi'}, type: 'success'}).show();
+
+							getList();
+
+						} else {
+							//form errors display
+							formErrors( data );
+						}
+					});
+				}
+			})
+			.on('change', '.title', function(){
+				var $this = $(this);
+
+				if( $this.val() === '' ){
+					$this.parent().removeClass('input-append')
+						.find('.quicklink').remove();
+				}
+
+				if( $this.siblings('.quicklink').length === 0 ){
+					$this.parent().addClass('input-append');
+					$quickLink.clone()
+						.attr('title', 'Rechercher dans Google Image')
+						.attr('href', 'http://www.google.com/images?q=' + $this.val() + ' watch')
+						.appendTo( $this.parent() );
+				}
+			})
+			.each(function(){
+				//add event listener for dynamic form validation
+				this.addEventListener("invalid", checkField, true);
+				this.addEventListener("blur", checkField, true);
+				this.addEventListener("input", checkField, true);
+			});
+
+	/** _____________________________________________ EDIT ACTION **/
+		$body.on('click', '.edit', function(e){
+			e.preventDefault();
+
+			var $this = $(this),
+				decoder = $('<textarea>'),
+				data = {item: JSON.parse( $.base64.decode( $this.closest('.item').attr('data-raw') ) )};
+
+			//reseting form
+			$form
+				.data('save_clicked', 0)
+				.find('.wrapper').html( tmpl('form_tmpl', data) );
+
+			window.setTimeout(function(){
+				//remove validation classes and focus the first field
+				$form
+					.find('.tagManager').each(function(){ $(this).tagsManager(); }).end()
+					.find('select').blur().end()
+					.find('input').filter('[type="text"]').first().focus();
+			}, 300);
+		});
+
+		$form.find('datalist, select').loadList();
+
+	/** _____________________________________________ DELETE ACTION **/
+		$body.on('click', '.delete', function(e){
+			var $this = $(this),
+				$form = $confirmModal.find('.delete-form');
+
+			//modify modal according to rel
+			$form
+				.find('input')
+					.filter('[name="id"]').val( $this.attr('data-itemId') );
+
+			$form
+				.data('save_clicked', 0)
+				.data('caller', $this);
+		});
+
+		$('.delete-form').submit(function(e){
+			e.preventDefault();
+			var $this = $(this);
+
+			//multiple call protection
+			if( $this.data('save_clicked') != 1 ){
+				$this.data('save_clicked', 1);
+
+				//send delete
+				$.post('ajax.php', $this.serialize(), function(data){
+					if( data == 'ok' ){
+						//inform user
+						$notify.notify({message: {text: 'Suppression réussie'}, type: 'success'}).show();
+
+						//remove deleted item from list
+						$this.data('caller').closest('.item').remove();
+
+						//modal close
+						$confirmModal.modal('hide');
+
+					} else {
+						$notify.notify({message: {text: 'Échec de la suppression'}, type: 'error'}).show();
+						//form errors display
+						//formErrors( data );
+					}
+				});
+			}
+		});
+
+	/** _____________________________________________ PARSE ACTION **/
+		$('#parse').click(function(e){
+			e.preventDefault();
+			var $this = $(this);
+
+			if( $this.hasClass('disabled') ){
+				return;
+			}
+
+			$this.addClass('disabled');
+
+			parseTarget();
+		});
+})(window, document, jQuery, undefined);

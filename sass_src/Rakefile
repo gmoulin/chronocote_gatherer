@@ -14,7 +14,7 @@ BOOTSTRAP_MIN_CSS = "../css/bootstrap.min.css"
 BOOTSTRAP_RESPONSIVE_CSS = "../css/bootstrap-responsive.css"
 BOOTSTRAP_RESPONSIVE_MIN_CSS = "../css/bootstrap-responsive.min.css"
 GATHERER_CSS = "../css/main.css"
-GATHERER_MIN_CSS = "../css/main.min.css"
+GATHERER_MIN_CSS = "../css/main.css" #no .min in name for html5boilerplate build script
 
 #debug-info to get source maps
 SASS_COMMAND = "sass --precision 16 --load-path lib --debug-info --style"
