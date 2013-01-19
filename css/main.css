@@ -1,0 +1,65 @@
+/* html5boilerplate css concat */
+/*==|== bootstrap.min ====*/
+/*==|== bootstrap-responsive.min ====*/
+/*==|== bootstrap-notify ====*/
+/*==|== bootstrap-tagmanager ====*/
+/*==|== bootstrap-image-gallery.min ====*/
+body {
+  padding-top: 51px;
+}
+datalist {
+  display: none;
+}
+.next-auction li {
+  text-align: center;
+}
+.edit-modal {
+  width: 90%;
+  margin-left: -45%;
+}
+.edit-modal .img-wrapper {
+  margin: 0;
+  padding: 4px;
+  width: 120px;
+  height: 120px;
+  display: inline-block;
+  text-align: center;
+}
+.edit-modal .img-wrapper:not(:first-child) {
+  margin: 0 8px 0 0;
+}
+.edit-modal .img-wrapper img {
+  max-width: 100%;
+  height: auto;
+}
+.edit-modal .img-wrapper figcaption {
+  margin-top: 3px;
+  display: block;
+}
+.progression-modal .finished {
+  display: none;
+}
+.progression-modal .success {
+  color: #468847;
+}
+.progression-modal .error {
+  color: #b94a48;
+}
+.container-list .table {
+  display: none;
+}
+.table thead th,
+.table .btn,
+.table .nw {
+  white-space: nowrap;
+}
+.table .actions {
+  text-align: center;
+}
+.table .edit {
+  margin-bottom: 2px;
+}
+.table .medium,
+.table .full {
+  display: none;
+}

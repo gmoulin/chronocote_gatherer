@@ -1,5 +1,12 @@
 @import "variables"; //use bootstrap variables
 
+/* html5boilerplate css concat */
+/*==|== bootstrap.min ====*/
+/*==|== bootstrap-responsive.min ====*/
+/*==|== bootstrap-notify ====*/
+/*==|== bootstrap-tagmanager ====*/
+/*==|== bootstrap-image-gallery.min ====*/
+
 body {
 	padding-top: 51px;
 }
@@ -15,6 +22,29 @@ datalist {
 .edit-modal {
 	width: 90%;
 	margin-left: -45%;
+
+	.img-wrapper {
+		margin: 0;
+		padding: 4px;
+		width: 120px;
+		height: 120px;
+		display: inline-block;
+		text-align: center;
+
+		&:not(:first-child){
+			margin: 0 8px 0 0;
+		}
+
+		img {
+			max-width: 100%;
+			height: auto;
+		}
+
+		figcaption {
+			margin-top: 3px;
+			display: block;
+		}
+	}
 }
 
 .progression-modal {

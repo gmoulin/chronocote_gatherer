@@ -74,7 +74,18 @@
 		<div class="control-group row-fluid">
 			<label class="control-label span3">Photo du lot</label>
 			<div class="controls span9">
-				<img src="<%=item.img_thumbnail%>">
+				<figure class="img-wrapper">
+					<img src="<%=item.img_thumbnail%>" class="img-polaroid img-rounded">
+					<figcaption>Thumbnail</figcaption>
+				</figure>
+				<figure class="img-wrapper">
+					<img src="<%=item.img_medium%>" class="img-polaroid img-rounded">
+					<figcaption>Medium</figcaption>
+				</figure>
+				<figure class="img-wrapper">
+					<img src="<%=item.img_full%>" class="img-polaroid img-rounded">
+					<figcaption>High Res</figcaption>
+				</figure>
 			</div>
 		</div>
 	</div>
@@ -143,6 +154,22 @@
 			<label class="control-label span3" for="sale_price">Prix de vente</label>
 			<div class="controls span9">
 				<input type="text" id="sale_price" name="sale_price" class="control input-small tagManager" value="" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="photo3">Photo</label>
+			<div class="controls span9">
+				<div class="row-fluid">
+					<label for="photo1" class="radio inline span3">
+						<input type="radio" id="photo1" name="photo" value="thumbnail">Thumbnail
+					</label>
+					<label for="photo2" class="radio inline span3 offset1">
+						<input type="radio" id="photo2" name="photo" value="medium">Medium
+					</label>
+					<label for="photo3" class="radio inline span3 offset1">
+						<input type="radio" id="photo3" name="photo" value="full">High Res
+					</label>
+				</div>
 			</div>
 		</div>
 	</div>

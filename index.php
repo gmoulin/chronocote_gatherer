@@ -5,7 +5,7 @@ try {
 	$lang = 'fr';
 
 	//only for dev to assure last version
-	if( file_exists(PATH.'/css/gatherer.css') ) $cssTS = filemtime( PATH.'/css/gatherer.css' );
+	if( file_exists(PATH.'/css/main.css') ) $cssTS = filemtime( PATH.'/css/main.css' );
 	if( file_exists(PATH.'/css/vendor/bootstrap.css') ) $bsTS = filemtime( PATH.'/css/vendor/bootstrap.css' );
 	if( file_exists(PATH.'/css/vendor/bootstrap-responsive.css') ) $bsrTS = filemtime( PATH.'/css/vendor/bootstrap-responsive.css' );
 	if( file_exists(PATH.'/js/main.js') ) $scriptTS = filemtime( PATH.'/js/main.js' );

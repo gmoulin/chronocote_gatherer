@@ -1,5 +1,9 @@
 # folder
 sub
+intermediate
+intermediate/**/*
+publish
+publish/**/*
 .sass-cache
 .sass-cache/**/*
 
