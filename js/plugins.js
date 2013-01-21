@@ -23,271 +23,271 @@
 
 // Place any jQuery/helper plugins in here.
 
-/* helpers */
-String.prototype.capitalize = function(){
-	return this.charAt(0).toUpperCase() + this.substr(1);
-};
-
-/**
- * replace accentued characters by non accentued counterpart
- * and remove spaces
- * used in jquery template
- */
-String.prototype.urlify = function(){
-	var s = this,
-		accent = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ',
-		without = ['A','A','A','A','A','A','a','a','a','a','a','a','O','O','O','O','O','O','O','o','o','o','o','o','o','E','E','E','E','e','e','e','e','e','C','c','D','I','I','I','I','i','i','i','i','U','U','U','U','u','u','u','u','N','n','S','s','Y','y','y','Z','z',''],
-		result = [];
-
-	s = s.split('');
-	len = s.length;
-	for (var i = 0; i < len; i++){
-		var j = accent.indexOf(s[i]);
-		if( j != -1 ){
-			result[i] = without[j];
-		} else {
-			result[i] = s[i];
-		}
-	}
-	return result.join('');
-};
-
-String.prototype.truncate = function(length, ellipsis){
-	var text = this, i;
-
-	// Set length and ellipsis to defaults if not defined
-	if( typeof length == 'undefined' ) length = 100;
-	if( typeof ellipsis == 'undefined' ) ellipsis = '...';
-
-	// Return if the text is already lower than the cutoff
-	if( text.length < length ) return text;
-
-	// Otherwise, check if the last character is a space.
-	// If not, keep counting down from the last character
-	// until we find a character that is a space
-	for( i = length - 1; text.charAt(i) != ' '; i-- ){
-		length--;
-	}
-
-	// The for() loop ends when it finds a space, and the length var
-	// has been updated so it doesn't cut in the middle of a word.
-	return text.substr(0, length) + ellipsis;
-};
-
-/* templating */
-// Simple JavaScript Templating
-// John Resig - http://ejohn.org/ - MIT Licensed
-(function(){
-	var cache = {};
-
-	this.tmpl = function tmpl(str, data){
-		// Figure out if we're getting a template, or if we need to
-		// load the template - and be sure to cache the result.
-		var fn = !/\W/.test(str) ?
-			cache[str] = cache[str] ||
-				tmpl(document.getElementById(str).innerHTML) :
-
-	// Generate a reusable function that will serve as a template
-	// generator (and which will be cached).
-	new Function("obj",
-		"var p=[],print=function(){p.push.apply(p,arguments);};" +
-
-		// Introduce the data as local variables using with(){}
-		"with(obj){p.push('" +
-
-		// Convert the template into pure JavaScript
-		str
-			.replace(/[\r\t\n]/g, " ")
-			.split("<%").join("\t")
-			.replace(/((^|%>)[^\t]*)'/g, "$1\r")
-			.replace(/\t=(.*?)%>/g, "',$1,'")
-			.split("\t").join("');")
-			.split("%>").join("p.push('")
-			.split("\r").join("\\'")
-		+ "');}return p.join('');");
-
-		// Provide some basic currying to the user
-		return data ? fn( data ) : fn;
+/** _____________________________________________ HELPERS **/
+	String.prototype.capitalize = function(){
+		return this.charAt(0).toUpperCase() + this.substr(1);
 	};
-})();
 
-/*
-* Original code (c) 2010 Nick Galbreath
-* http://code.google.com/p/stringencoders/source/browse/#svn/trunk/javascript
-*
-* jQuery port (c) 2010 Carlo Zottmann
-* http://github.com/carlo/jquery-base64
-*
-* Permission is hereby granted, free of charge, to any person
-* obtaining a copy of this software and associated documentation
-* files (the "Software"), to deal in the Software without
-* restriction, including without limitation the rights to use,
-* copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following
-* conditions:
-*
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-* OTHER DEALINGS IN THE SOFTWARE.
-*/
+	/**
+	 * replace accentued characters by non accentued counterpart
+	 * and remove spaces
+	 */
+	String.prototype.urlify = function(){
+		var s = this,
+			accent = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ',
+			without = ['A','A','A','A','A','A','a','a','a','a','a','a','O','O','O','O','O','O','O','o','o','o','o','o','o','E','E','E','E','e','e','e','e','e','C','c','D','I','I','I','I','i','i','i','i','U','U','U','U','u','u','u','u','N','n','S','s','Y','y','y','Z','z',''],
+			result = [];
 
-/* base64 encode/decode compatible with window.btoa/atob
-*
-* window.atob/btoa is a Firefox extension to convert binary data (the "b")
-* to base64 (ascii, the "a").
-*
-* It is also found in Safari and Chrome. It is not available in IE.
-*
-* if (!window.btoa) window.btoa = $.base64.encode
-* if (!window.atob) window.atob = $.base64.decode
-*
-* The original spec's for atob/btoa are a bit lacking
-* https://developer.mozilla.org/en/DOM/window.atob
-* https://developer.mozilla.org/en/DOM/window.btoa
-*
-* window.btoa and $.base64.encode takes a string where charCodeAt is [0,255]
-* If any character is not [0,255], then an exception is thrown.
-*
-* window.atob and $.base64.decode take a base64-encoded string
-* If the input length is not a multiple of 4, or contains invalid characters
-* then an exception is thrown.
-*/
+		s = s.split('');
+		len = s.length;
+		for (var i = 0; i < len; i++){
+			var j = accent.indexOf(s[i]);
+			if( j != -1 ){
+				result[i] = without[j];
+			} else {
+				result[i] = s[i];
+			}
+		}
+		return result.join('');
+	};
 
-jQuery.base64 = ( function( $ ) {
+	String.prototype.truncate = function(length, ellipsis){
+		var text = this, i;
 
-  var _PADCHAR = "=",
-    _ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-    _VERSION = "1.0";
+		// Set length and ellipsis to defaults if not defined
+		if( typeof length == 'undefined' ) length = 100;
+		if( typeof ellipsis == 'undefined' ) ellipsis = '...';
 
+		// Return if the text is already lower than the cutoff
+		if( text.length < length ) return text;
 
-  function _getbyte64( s, i ) {
-    // This is oddly fast, except on Chrome/V8.
-    // Minimal or no improvement in performance by using a
-    // object with properties mapping chars to value (eg. 'A': 0)
+		// Otherwise, check if the last character is a space.
+		// If not, keep counting down from the last character
+		// until we find a character that is a space
+		for( i = length - 1; text.charAt(i) != ' '; i-- ){
+			length--;
+		}
 
-    var idx = _ALPHA.indexOf( s.charAt( i ) );
+		// The for() loop ends when it finds a space, and the length var
+		// has been updated so it doesn't cut in the middle of a word.
+		return text.substr(0, length) + ellipsis;
+	};
 
-    if ( idx === -1 ) {
-      throw "Cannot decode base64";
-    }
+/** _____________________________________________ TEMPLATING **/
+	// Simple JavaScript Templating
+	// John Resig - http://ejohn.org/ - MIT Licensed
+	(function(){
+		var cache = {};
 
-    return idx;
-  }
+		this.tmpl = function tmpl(str, data){
+			// Figure out if we're getting a template, or if we need to
+			// load the template - and be sure to cache the result.
+			var fn = !/\W/.test(str) ?
+				cache[str] = cache[str] ||
+					tmpl(document.getElementById(str).innerHTML) :
 
+		// Generate a reusable function that will serve as a template
+		// generator (and which will be cached).
+		new Function("obj",
+			"var p=[],print=function(){p.push.apply(p,arguments);};" +
 
-  function _decode( s ) {
-    var pads = 0,
-      i,
-      b10,
-      imax = s.length,
-      x = [];
+			// Introduce the data as local variables using with(){}
+			"with(obj){p.push('" +
 
-    s = String( s );
+			// Convert the template into pure JavaScript
+			str
+				.replace(/[\r\t\n]/g, " ")
+				.split("<%").join("\t")
+				.replace(/((^|%>)[^\t]*)'/g, "$1\r")
+				.replace(/\t=(.*?)%>/g, "',$1,'")
+				.split("\t").join("');")
+				.split("%>").join("p.push('")
+				.split("\r").join("\\'")
+			+ "');}return p.join('');");
 
-    if ( imax === 0 ) {
-      return s;
-    }
+			// Provide some basic currying to the user
+			return data ? fn( data ) : fn;
+		};
+	})();
 
-    if ( imax % 4 !== 0 ) {
-      throw "Cannot decode base64";
-    }
+/** _____________________________________________ BASE 64 encode / decode **/
+	/*
+	* Original code (c) 2010 Nick Galbreath
+	* http://code.google.com/p/stringencoders/source/browse/#svn/trunk/javascript
+	*
+	* jQuery port (c) 2010 Carlo Zottmann
+	* http://github.com/carlo/jquery-base64
+	*
+	* Permission is hereby granted, free of charge, to any person
+	* obtaining a copy of this software and associated documentation
+	* files (the "Software"), to deal in the Software without
+	* restriction, including without limitation the rights to use,
+	* copy, modify, merge, publish, distribute, sublicense, and/or sell
+	* copies of the Software, and to permit persons to whom the
+	* Software is furnished to do so, subject to the following
+	* conditions:
+	*
+	* The above copyright notice and this permission notice shall be
+	* included in all copies or substantial portions of the Software.
+	*
+	* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+	* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+	* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+	* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+	* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+	* OTHER DEALINGS IN THE SOFTWARE.
+	*/
 
-    if ( s.charAt( imax - 1 ) === _PADCHAR ) {
-      pads = 1;
+	/* base64 encode/decode compatible with window.btoa/atob
+	*
+	* window.atob/btoa is a Firefox extension to convert binary data (the "b")
+	* to base64 (ascii, the "a").
+	*
+	* It is also found in Safari and Chrome. It is not available in IE.
+	*
+	* if (!window.btoa) window.btoa = $.base64.encode
+	* if (!window.atob) window.atob = $.base64.decode
+	*
+	* The original spec's for atob/btoa are a bit lacking
+	* https://developer.mozilla.org/en/DOM/window.atob
+	* https://developer.mozilla.org/en/DOM/window.btoa
+	*
+	* window.btoa and $.base64.encode takes a string where charCodeAt is [0,255]
+	* If any character is not [0,255], then an exception is thrown.
+	*
+	* window.atob and $.base64.decode take a base64-encoded string
+	* If the input length is not a multiple of 4, or contains invalid characters
+	* then an exception is thrown.
+	*/
 
-      if ( s.charAt( imax - 2 ) === _PADCHAR ) {
-        pads = 2;
-      }
+	jQuery.base64 = ( function( $ ) {
 
-      // either way, we want to ignore this last block
-      imax -= 4;
-    }
-
-    for ( i = 0; i < imax; i += 4 ) {
-      b10 = ( _getbyte64( s, i ) << 18 ) | ( _getbyte64( s, i + 1 ) << 12 ) | ( _getbyte64( s, i + 2 ) << 6 ) | _getbyte64( s, i + 3 );
-      x.push( String.fromCharCode( b10 >> 16, ( b10 >> 8 ) & 0xff, b10 & 0xff ) );
-    }
-
-    switch ( pads ) {
-      case 1:
-        b10 = ( _getbyte64( s, i ) << 18 ) | ( _getbyte64( s, i + 1 ) << 12 ) | ( _getbyte64( s, i + 2 ) << 6 );
-        x.push( String.fromCharCode( b10 >> 16, ( b10 >> 8 ) & 0xff ) );
-        break;
-
-      case 2:
-        b10 = ( _getbyte64( s, i ) << 18) | ( _getbyte64( s, i + 1 ) << 12 );
-        x.push( String.fromCharCode( b10 >> 16 ) );
-        break;
-    }
-
-    return x.join( "" );
-  }
-
-
-  function _getbyte( s, i ) {
-    var x = s.charCodeAt( i );
-
-    if ( x > 255 ) {
-      throw "INVALID_CHARACTER_ERR: DOM Exception 5";
-    }
-
-    return x;
-  }
-
-
-  function _encode( s ) {
-    if ( arguments.length !== 1 ) {
-      throw "SyntaxError: exactly one argument required";
-    }
-
-    s = String( s );
-
-    var i,
-      b10,
-      x = [],
-      imax = s.length - s.length % 3;
-
-    if ( s.length === 0 ) {
-      return s;
-    }
-
-    for ( i = 0; i < imax; i += 3 ) {
-      b10 = ( _getbyte( s, i ) << 16 ) | ( _getbyte( s, i + 1 ) << 8 ) | _getbyte( s, i + 2 );
-      x.push( _ALPHA.charAt( b10 >> 18 ) );
-      x.push( _ALPHA.charAt( ( b10 >> 12 ) & 0x3F ) );
-      x.push( _ALPHA.charAt( ( b10 >> 6 ) & 0x3f ) );
-      x.push( _ALPHA.charAt( b10 & 0x3f ) );
-    }
-
-    switch ( s.length - imax ) {
-      case 1:
-        b10 = _getbyte( s, i ) << 16;
-        x.push( _ALPHA.charAt( b10 >> 18 ) + _ALPHA.charAt( ( b10 >> 12 ) & 0x3F ) + _PADCHAR + _PADCHAR );
-        break;
-
-      case 2:
-        b10 = ( _getbyte( s, i ) << 16 ) | ( _getbyte( s, i + 1 ) << 8 );
-        x.push( _ALPHA.charAt( b10 >> 18 ) + _ALPHA.charAt( ( b10 >> 12 ) & 0x3F ) + _ALPHA.charAt( ( b10 >> 6 ) & 0x3f ) + _PADCHAR );
-        break;
-    }
-
-    return x.join( "" );
-  }
+	  var _PADCHAR = "=",
+		_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+		_VERSION = "1.0";
 
 
-  return {
-    decode: _decode,
-    encode: _encode,
-    VERSION: _VERSION
-  };
+	  function _getbyte64( s, i ) {
+		// This is oddly fast, except on Chrome/V8.
+		// Minimal or no improvement in performance by using a
+		// object with properties mapping chars to value (eg. 'A': 0)
 
-}( jQuery ) );
+		var idx = _ALPHA.indexOf( s.charAt( i ) );
+
+		if ( idx === -1 ) {
+		  throw "Cannot decode base64";
+		}
+
+		return idx;
+	  }
+
+
+	  function _decode( s ) {
+		var pads = 0,
+		  i,
+		  b10,
+		  imax = s.length,
+		  x = [];
+
+		s = String( s );
+
+		if ( imax === 0 ) {
+		  return s;
+		}
+
+		if ( imax % 4 !== 0 ) {
+		  throw "Cannot decode base64";
+		}
+
+		if ( s.charAt( imax - 1 ) === _PADCHAR ) {
+		  pads = 1;
+
+		  if ( s.charAt( imax - 2 ) === _PADCHAR ) {
+			pads = 2;
+		  }
+
+		  // either way, we want to ignore this last block
+		  imax -= 4;
+		}
+
+		for ( i = 0; i < imax; i += 4 ) {
+		  b10 = ( _getbyte64( s, i ) << 18 ) | ( _getbyte64( s, i + 1 ) << 12 ) | ( _getbyte64( s, i + 2 ) << 6 ) | _getbyte64( s, i + 3 );
+		  x.push( String.fromCharCode( b10 >> 16, ( b10 >> 8 ) & 0xff, b10 & 0xff ) );
+		}
+
+		switch ( pads ) {
+		  case 1:
+			b10 = ( _getbyte64( s, i ) << 18 ) | ( _getbyte64( s, i + 1 ) << 12 ) | ( _getbyte64( s, i + 2 ) << 6 );
+			x.push( String.fromCharCode( b10 >> 16, ( b10 >> 8 ) & 0xff ) );
+			break;
+
+		  case 2:
+			b10 = ( _getbyte64( s, i ) << 18) | ( _getbyte64( s, i + 1 ) << 12 );
+			x.push( String.fromCharCode( b10 >> 16 ) );
+			break;
+		}
+
+		return x.join( "" );
+	  }
+
+
+	  function _getbyte( s, i ) {
+		var x = s.charCodeAt( i );
+
+		if ( x > 255 ) {
+		  throw "INVALID_CHARACTER_ERR: DOM Exception 5";
+		}
+
+		return x;
+	  }
+
+
+	  function _encode( s ) {
+		if ( arguments.length !== 1 ) {
+		  throw "SyntaxError: exactly one argument required";
+		}
+
+		s = String( s );
+
+		var i,
+		  b10,
+		  x = [],
+		  imax = s.length - s.length % 3;
+
+		if ( s.length === 0 ) {
+		  return s;
+		}
+
+		for ( i = 0; i < imax; i += 3 ) {
+		  b10 = ( _getbyte( s, i ) << 16 ) | ( _getbyte( s, i + 1 ) << 8 ) | _getbyte( s, i + 2 );
+		  x.push( _ALPHA.charAt( b10 >> 18 ) );
+		  x.push( _ALPHA.charAt( ( b10 >> 12 ) & 0x3F ) );
+		  x.push( _ALPHA.charAt( ( b10 >> 6 ) & 0x3f ) );
+		  x.push( _ALPHA.charAt( b10 & 0x3f ) );
+		}
+
+		switch ( s.length - imax ) {
+		  case 1:
+			b10 = _getbyte( s, i ) << 16;
+			x.push( _ALPHA.charAt( b10 >> 18 ) + _ALPHA.charAt( ( b10 >> 12 ) & 0x3F ) + _PADCHAR + _PADCHAR );
+			break;
+
+		  case 2:
+			b10 = ( _getbyte( s, i ) << 16 ) | ( _getbyte( s, i + 1 ) << 8 );
+			x.push( _ALPHA.charAt( b10 >> 18 ) + _ALPHA.charAt( ( b10 >> 12 ) & 0x3F ) + _ALPHA.charAt( ( b10 >> 6 ) & 0x3f ) + _PADCHAR );
+			break;
+		}
+
+		return x.join( "" );
+	  }
+
+
+	  return {
+		decode: _decode,
+		encode: _encode,
+		VERSION: _VERSION
+	  };
+
+	}( jQuery ) );
