@@ -14,6 +14,7 @@ SET time_zone = "+00:00";
 --
 -- Database: `gatherer`
 --
+USE mouli_gatherer;
 
 -- --------------------------------------------------------
 

@@ -12,8 +12,12 @@ datalist {
 	display: none;
 }
 
-.next-auction li {
-    text-align: center;
+.next-auction {
+	margin-left: 0;
+
+	li {
+		text-align: center;
+	}
 }
 
 .edit-modal {
