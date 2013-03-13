@@ -215,6 +215,34 @@ class candidate extends commun {
 	}
 
 	/**
+	 * @param string $source
+	 * @param integer $auction
+	 * @return true or false
+	 */
+	public function checkAuction( $source, $auction ) {
+		try {
+			$exists = $this->db->prepare('
+				SELECT id
+				FROM candidate
+				WHERE source = :source
+				AND auction_id = :auction
+			');
+
+			$exists->execute(array(
+				':source' => $source,
+				':auction' => $auction,
+			));
+
+			$result = $exists->fetchAll();
+			file_put_contents('/var/tmp/debug.log', print_r($result, true));
+			return count($result) > 0 ? 1 : 0;
+
+		} catch ( PDOException $e ) {
+			erreur_pdo( $e, get_class( $this ), __FUNCTION__ );
+		}
+	}
+
+	/**
 	 * @param integer $id
 	 * @return boolean
 	 */

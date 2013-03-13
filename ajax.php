@@ -47,6 +47,10 @@ try {
 
 				if( $target == 'antiquorum' ){
 					$postData = 'action=search&s_searchtype=1&s_order=lotid.desc&s_hideauctions=&s_keywords=&s_fromprice=&s_toprice=&s_auction=0&s_grading=-1&s_batchstep=10&searchsubmit=SEARCH';
+
+				} else if( $target == 'sothebys' ){
+					//end date timestamp to javascript format (milliseconds)
+					$postData = 'invertLocations=false&eventTypes=/data/dictionaries/eventType/AUC&departments=/data/departments/watches&showPast=true&startDate=1167606000000&endDate='.(time() * 1000).'&_charset_=utf-8&tzOffset=-3600000&filterExtended=true&ajaxScrolling=false&ascing=asc&orderBy=date&part=true&delete=undefined&from='.($page - 1 * 10).'&to='.($page * 10);
 				}
 
 				$url = filter_var(base64_decode($url), FILTER_SANITIZE_URL);
@@ -54,39 +58,175 @@ try {
 					throw new Exception('url incorrecte.');
 				}
 
-				//first curl to get a session id
-				$ch = curl_init();
-				curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/catalog.html');
-				curl_setopt($ch, CURLOPT_POST, 0);
-				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($ch, CURLOPT_COOKIESESSION, true);
-				curl_setopt($ch, CURLOPT_HEADER, 1);
-				preg_match('/^Set-Cookie: (.*?);/m', curl_exec($ch), $m);
-				if( isset($m[1]) ){
-					$sessionId = $m[1];
-				} else {
-					$sessionId = 'PHPSESSID=a1526hnkmq6hfo74h1c59rbqq3';
+				$output = '';
+				if( $target == 'antiquorum' ){
+					//first curl to get a session id
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/catalog.html');
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_COOKIESESSION, true);
+					curl_setopt($ch, CURLOPT_HEADER, 1);
+					$header = curl_exec($ch);
+					preg_match('/^Set-Cookie: (.*?);/m', $header, $m);
+					if( isset($m[1]) ){
+						$sessionId = $m[1];
+					} else {
+						$sessionId = 'PHPSESSID=a1526hnkmq6hfo74h1c59rbqq3';
+					}
+					$_SESSION['cookie_PHPSESSID'] = 'PHPSESSID=a1526hnkmq6hfo74h1c59rbqq3';
+					curl_close($ch);
+
+
+					//need a POST to "initialize" the search
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/catalog.html');
+					curl_setopt($ch, CURLOPT_POST, 1);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_HEADER, false);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/catalog.html');
+					curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
+					$output = curl_exec($ch);
+					curl_close($ch);
+
+					//next pages are GETs
+					if( $page > 1 ){
+						//need a post
+						$ch = curl_init();
+						curl_setopt($ch, CURLOPT_URL, $url);
+						curl_setopt($ch, CURLOPT_POST, 0);
+						curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+						curl_setopt($ch, CURLOPT_HEADER, false);
+						curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+						curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+						curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+						curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/catalog.html');
+						curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
+						$output = curl_exec($ch);
+						curl_close($ch);
+					}
+				} elseif( $target == 'sothebys' ){
+					//first curl to get a session id
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, 'http://www.sothebys.com/en/auctions/results.html');
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_COOKIESESSION, true);
+					curl_setopt($ch, CURLOPT_HEADER, 1);
+					$header = curl_exec($ch);
+					preg_match('/^Set-Cookie: (.*?);/m', $header, $m);
+					$_SESSION['sothebys_cookie'] = isset($m[1]) ? $m[1] : '';
+					curl_close($ch);
+
+					//need a POST to "initialize" the search
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, 'http://www.sothebys.com/en/auctions/results/_jcr_content.auctionsList.html');
+					curl_setopt($ch, CURLOPT_POST, 1);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, $postData); // pagination is already in postData
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_HEADER, false);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_REFERER, 'http://www.sothebys.com/en/auctions/results.html');
+					if( $_SESSION['sothebys_cookie'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
+					}
+					$output = curl_exec($ch);
+					curl_close($ch);
 				}
-				$_SESSION['cookie_PHPSESSID'] = 'PHPSESSID=a1526hnkmq6hfo74h1c59rbqq3';
-				curl_close($ch);
 
-				//need a POST to "initialize" the search
-				$ch = curl_init();
-				curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/catalog.html');
-				curl_setopt($ch, CURLOPT_POST, 1);
-				curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($ch, CURLOPT_HEADER, false);
-				curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-				curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
-				curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-				curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/catalog.html');
-				curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
-				$output = curl_exec($ch);
-				curl_close($ch);
+				//client need html
+				echo $output;
+				die();
+			break;
+		case 'proxyLotsList':
+				$target = filter_has_var(INPUT_POST, 'target');
+				if( is_null($target) || $target === false ){
+					throw new Exception('cible manquante.');
+				}
 
-				//next pages are GETs
-				if( $page > 1 ){
+				$target = filter_var($_POST['target'], FILTER_SANITIZE_STRING);
+				if( $target === false ){
+					throw new Exception('cible incorrecte.');
+				}
+
+				$url = filter_has_var(INPUT_POST, 'url');
+				if( is_null($url) || $url === false ){
+					throw new Exception('url manquante.');
+				}
+
+				$url = filter_var(base64_decode($_POST['url']), FILTER_SANITIZE_URL);
+				if( $url === false ){
+					throw new Exception('url incorrecte.');
+				}
+
+				$referer = filter_has_var(INPUT_POST, 'referer');
+				$referer = filter_var(base64_decode($_POST['referer']), FILTER_SANITIZE_URL);
+
+				$output = '';
+				if( $target == 'sothebys' ){
+					//need a post
+					$ch = curl_init();
+					file_put_contents('/var/tmp/debug.log', $url);
+					file_put_contents('/var/tmp/debug.log', $referer, FILE_APPEND);
+					curl_setopt($ch, CURLOPT_URL, $url);
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_HEADER, false);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://www.sothebys.com/en/auctions/results.html');
+					if( $_SESSION['sothebys_cookie'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
+					}
+					$output = curl_exec($ch);
+					file_put_contents('/var/tmp/debug.log', $output, FILE_APPEND);
+					curl_close($ch);
+				}
+
+				//client need html
+				echo $output;
+				die();
+			break;
+		case 'proxyLotDetail':
+				$target = filter_has_var(INPUT_POST, 'target');
+				if( is_null($target) || $target === false ){
+					throw new Exception('cible manquante.');
+				}
+
+				$target = filter_var($_POST['target'], FILTER_SANITIZE_STRING);
+				if( $target === false ){
+					throw new Exception('cible incorrecte.');
+				}
+
+				$url = filter_has_var(INPUT_POST, 'url');
+				if( is_null($url) || $url === false ){
+					throw new Exception('url manquante.');
+				}
+
+				$url = filter_var(base64_decode($_POST['url']), FILTER_SANITIZE_URL);
+				if( $url === false ){
+					throw new Exception('url incorrecte.');
+				}
+
+				$referer = filter_has_var(INPUT_POST, 'referer');
+				if( is_null($referer) || $referer === false ){
+					throw new Exception('referer manquant.');
+				}
+
+				$referer = filter_var(base64_decode($_POST['referer']), FILTER_SANITIZE_URL);
+				if( $referer === false ){
+					throw new Exception('referer incorrect.');
+				}
+
+				$output = '';
+				if( $target == 'sothebys' ){
 					//need a post
 					$ch = curl_init();
 					curl_setopt($ch, CURLOPT_URL, $url);
@@ -96,8 +236,9 @@ try {
 					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
 					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-					curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/catalog.html');
-					curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
+					curl_setopt($ch, CURLOPT_REFERER, $referer);
+					curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['cookie']);
+					//curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
 					$output = curl_exec($ch);
 					curl_close($ch);
 				}
@@ -176,6 +317,33 @@ try {
 					$response = array('id' => $check);
 				}
 			break;
+		case 'checkAuctionExists':
+				$target = filter_has_var(INPUT_POST, 'target');
+				if( is_null($target) || $target === false ){
+					throw new Exception('cible manquante.');
+				}
+
+				$target = filter_var($_POST['target'], FILTER_SANITIZE_STRING);
+				if( $target === false ){
+					throw new Exception('cible incorrecte.');
+				}
+
+				$auctionId = filter_has_var(INPUT_POST, 'auctionId');
+				if( is_null($auctionId) || $auctionId === false ){
+					throw new Exception('auction manquante.');
+				}
+
+				$auctionId = filter_var($_POST['auctionId'], FILTER_SANITIZE_STRING);
+				if( $auctionId === false ){
+					throw new Exception('auction incorrecte.');
+				}
+
+				//check unicity
+				$oCandidate = new candidate();
+				$check = $oCandidate->checkAuction( $target, $auctionId );
+
+				$response = array('exists' => $check);
+			break;
 		case 'loadList':
 				if( !filter_has_var(INPUT_GET, 'field') ){
 					throw new Exception('paramètre manquant.');
@@ -188,7 +356,6 @@ try {
 
 				//@TODO
 				$response = array();
-
 			break;
 		case 'add':
 				$oCandidate = new candidate();
@@ -244,7 +411,6 @@ try {
 				$candidates = $oCandidate->getCandidatesByTarget( $target );
 
 				$response = array('list' => $candidates);
-
 			break;
 		case 'increasePage':
 				$target = filter_has_var(INPUT_POST, 'target');
