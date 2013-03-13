@@ -237,11 +237,13 @@ var progress = function( msg, cssClass ){
 
 			$.when( parseLots( activeTab, conf, $parts ) )
 				.done(function(){
-					$progressionModal.find('.finished').removeClass('btn-error').addClass('btn-success');
+					if( !nextPage ){
+						$progressionModal.find('.finished').removeClass('btn-error').addClass('btn-success');
+					}
 
 					//update trace page
 					//use isLastPage and completePage to check if page number should be increased
-					if( completedPage && !isLastPage ){
+					if( activeTab == 'antiquorum' && completedPage && !isLastPage ){
 						progress('Page complètement analysée, augmentation du numéro de page pour '+ activeTab.capitalize());
 
 						$.ajax({
@@ -270,19 +272,47 @@ var progress = function( msg, cssClass ){
 							progress('Échec de la mise à jour des informations (numéro de page)', 'error');
 						});
 					}
+
+					if( activeTab == 'sothebys' ) {
+						progress('Page de lots complètement analysée, sauvegarde de l\'état d\'avancement pour '+ activeTab.capitalize());
+						$.ajax({
+							url: 'ajax.php',
+							data: 'action=updateLast&target='+ activeTab + $.param( last[ activeTab ] ),
+							type: 'POST',
+							dataType: 'json',
+							timeout: 2000,
+							cache: false
+						})
+						.done(function(data){
+							if( data.page ){
+								last[ activeTab ] = data;
+
+							} else {
+								progress('Échec de la mise à jour des informations', 'error');
+							}
+						})
+						.fail(function(){
+							progress('Échec de la mise à jour des informations', 'error');
+						});
+					}
+
 				})
 				.fail(function(){
 					if( stop ){
 						progress('Traitement stoppé sur demande', 'info');
-						progress('Toute auction partiellement traitée (au moins un lot enregistré) sera considérée comme complètement traitée et sera omise à la prochaine vérification', 'warning');
+						if( activeTab == 'sothebys' ){
+							progress('Toute auction partiellement traitée (au moins un lot enregistré) sera considérée comme complètement traitée et sera omise à la prochaine vérification', 'warning');
+						}
 					}
+
 					$progressionModal.find('.finished').removeClass('btn-success').addClass('btn-error');
 				})
 				.always(function(){
-					$('#parse').removeClass('disabled');
-
-					$progressionModal
-						.find('.stop').hide().next().show();
+					if( !nextPage ){
+						$('#parse').removeClass('disabled');
+						$progressionModal
+							.find('.stop').hide().next().show();
+					}
 				});
 		})
 		.fail(function(){
@@ -311,6 +341,11 @@ var progress = function( msg, cssClass ){
 		}).promise();
 	};
 
+	/**
+	 * antiquorum have a lot list,
+	 * parsing it page per page
+	 * store the current page number
+	 */
 	var parseAntiquorumResults = function( dfd, activeTab, conf, $lots ){
 		'use strict';
 		if( stop ) return dfd.reject();
@@ -518,6 +553,15 @@ var progress = function( msg, cssClass ){
 		return dfd.pipe( lotsLoop(dfd) );
 	};
 
+	/**
+	 * sotheby's have a filtered auction list,
+	 * get one,
+	 * parse the auction detail page to get the lots
+	 * parse lots page per page
+	 * store the auction list current page number
+	 * store the current auction detail page url
+	 * store the current lots list page
+	 */
 	var parseSothebysResults = function( dfd, activeTab, conf, $auctions ){
 		'use strict';
 		if( stop ) return dfd.reject();
@@ -528,7 +572,7 @@ var progress = function( msg, cssClass ){
 			lots = [],
 			isfullPage = size == conf.maxLotPerPage,
 			auctionParsed = false,
-			j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lot, lotsListUrls;
+			j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lot, lotsListUrls, totalLots;
 
 		var auctionsLoop = function( dfd ){
 			if( stop ) return dfd.reject();
@@ -539,7 +583,24 @@ var progress = function( msg, cssClass ){
 
 			i++;
 			if( i >= size ){
-				progress(auctions.length +' auctions valides trouvées - récupération de leurs lots');
+				auction = null;
+				//check if the storage auction url is in the list
+				if( last[ activeTab ].auctionId !== '' ){
+					for( var k = 0; k < auctions.length; k += 1 ){
+						if( auctions[ k ].auctionId == last[ activeTab ].auctionId){
+							auction = auctions[ k ];
+							break;
+						}
+					}
+
+					if( auction ){
+						progress('auction en cours de traitement trouvée, #'+ auction.auctionId);
+						i = k;
+						return dfd.pipe( getAuctionDetail(dfd) );
+					}
+				}
+
+				progress(auctions.length +' auctions valides trouvées - récupération des lots pour la première');
 				i = -1; //reset counter for byAuction loop
 				return dfd.pipe( byAuction(dfd) );
 			}
@@ -589,11 +650,24 @@ var progress = function( msg, cssClass ){
 				return dfd.resolve();
 			}
 
-			if( auctionParsed ){
-				if( i + 1 < length ){
+			if( auctionParsed ){ // auction lots page parsed
+				progress('Traitement fini pour auction #'+ auction.auctionId +' page '+ (parseInt(last[ activeTab ].lotPage, 10) + 1), 'success');
+
+				if( i + 1 < auctions.length ){
 					completedPage = false; // only one auction per gathering for sothebys, still more on page
+
+					last[ activeTab ].auctionId = auction.auctionId;
+
+					if( lotsListUrls[ last[ activeTab ].lotPage ] === undefined ){
+						last[ activeTab ].lotPage = 0;
+					}
+
+				} else {
+					last[ activeTab ].page = parseInt(last[ activeTab ].page, 10) + 1;
+					last[ activeTab ].auctionId = '';
+					last[ activeTab ].lotPage = 0;
 				}
-				progress('Traitement fini pour auction #'+ auction.auctionId, 'success');
+
 				return dfd.resolve();
 			}
 
@@ -606,33 +680,7 @@ var progress = function( msg, cssClass ){
 
 			auction = auctions[i];
 
-			return dfd.pipe( checkAuction(dfd) );
-		};
-
-		var checkAuction = function( dfd ){
-			if( stop ) return dfd.reject();
-			progress('Vérification pour auction #'+ auction.auctionId);
-			//check if auction has already been gathered
-			$.ajax({
-				url: 'ajax.php',
-				data: 'action=checkAuctionExists&target='+ activeTab + '&auctionId='+ auction.auctionId,
-				dataType: 'json',
-				type: 'POST',
-				timeout: 2 * 60 * 1000,
-				cache: false
-			})
-			.done(function( data ){
-				if( data.exists ){
-					progress('auction #'+ auction.auctionId +' déjà traitée');
-					return dfd.pipe( byAuction(dfd) );
-				}
-
-				return dfd.pipe( getAuctionDetail(dfd) )
-			})
-			.fail(function(){
-				progress('Échec de la vérification du traitement d\'une auction', 'error');
-				return dfd.reject();
-			});
+			return dfd.pipe( getAuctionDetail(dfd) );
 		};
 
 		var getAuctionDetail = function( dfd ){
@@ -656,10 +704,10 @@ var progress = function( msg, cssClass ){
 				lotsListUrls = $data.find('#ecatNavMenu').find('.lot-paging').find('.page-num').map(function(){ return $(this).attr('href'); /* this.href would return http://currenthost/... */ }).get();
 				$lots = $data.find('#listBlock');
 
-				nbLots = $data.find('#filterTotal').text();
+				totalLots = $data.find('#filterTotal').text();
 				nbPages = lotsListUrls.length;
 
-				progress(nbLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
+				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
 				j = -1;
 				lots = [];
 				return dfd.pipe( lotsPagesLoop(dfd) )
@@ -676,14 +724,13 @@ var progress = function( msg, cssClass ){
 
 			progress('Traitement des lots');
 
-			if( j >= nbPages ){
-				progress('Récupération des lots finis pour auction #'+ auction.auctionId);
-				j = -1; // reset counter for lots detail loop
-				return dfd.pipe( lotsDetailLoop(dfd) );
+			if( last[ activeTab ].lotPage > 0 ){
+				progress('Reprise du traitement à la page '+ last[ activeTab ].lotPage);
+				j = parseInt( last[ activeTab ].lotPage, 10 );
 			}
 
 			if( j === 0 ){ //first page, already have the data
-				return dfd.pipe( byLotsPage(dfd) );
+				return dfd.pipe( analyseLotsPage(dfd) );
 			}
 
 			return dfd.pipe( getLotsPage(dfd) );
@@ -709,7 +756,7 @@ var progress = function( msg, cssClass ){
 
 				$lots = $data.find('#listBlock');
 
-				return dfd.pipe( byLotsPage(dfd) )
+				return dfd.pipe( analyseLotsPage(dfd) );
 			})
 			.fail(function(){
 				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auctionId, 'error');
@@ -717,7 +764,7 @@ var progress = function( msg, cssClass ){
 			});
 		};
 
-		var byLotsPage = function( dfd ){
+		var analyseLotsPage = function( dfd ){
 			if( stop ) return dfd.reject();
 			progress('Analyse des lots pour auction #'+ auction.auctionId);
 
@@ -744,18 +791,25 @@ var progress = function( msg, cssClass ){
 				lots.push( lot );
 			});
 
-			return dfd.pipe( lotsPagesLoop(dfd) );
+			nbLots = lots.length;
+
+			j = -1;
+			return dfd.pipe( lotsDetailLoop(dfd) ); // only one page lot per gathering for sotheby's
 		};
 
 		var lotsDetailLoop = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Récupération du détail des lots pour auction #'+ auction.auctionId);
 
 			j++;
 
 			if( j >= lots.length ){
 				auctionParsed = true;
+				last[ activeTab ].lotPage = parseInt( last[ activeTab ].lotPage, 10 ) + 1;
 				return dfd.pipe( byAuction(dfd) );
+			}
+
+			if( j === 0 ){
+				progress('Récupération du détail des lots pour auction #'+ auction.auctionId);
 			}
 
 			lot = lots[ j ];

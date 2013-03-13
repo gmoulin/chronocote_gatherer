@@ -15,11 +15,7 @@ try {
 	$parts = array('antiquorum', 'christies', 'sothebys');
 	foreach( $parts as $p ){
 		$trace = $oTrace->getTraceByTarget($p);
-		$next_auction[ $p ] = $trace['next'];
-		$last[ $p ] = array(
-			'timestamp' => $trace['timestamp'],
-			'page' => $trace['page'],
-		);
+		$last[ $p ] = $trace;
 	}
 
 } catch (Exception $e) {

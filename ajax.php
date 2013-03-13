@@ -172,8 +172,6 @@ try {
 				if( $target == 'sothebys' ){
 					//need a post
 					$ch = curl_init();
-					file_put_contents('/var/tmp/debug.log', $url);
-					file_put_contents('/var/tmp/debug.log', $referer, FILE_APPEND);
 					curl_setopt($ch, CURLOPT_URL, $url);
 					curl_setopt($ch, CURLOPT_POST, 0);
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -186,7 +184,6 @@ try {
 						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
 					}
 					$output = curl_exec($ch);
-					file_put_contents('/var/tmp/debug.log', $output, FILE_APPEND);
 					curl_close($ch);
 				}
 
@@ -428,6 +425,58 @@ try {
 				$trace['page']++;
 
 				$oTrace->updTrace( $trace );
+				$response = $trace;
+			break;
+		case 'updateLast':
+				$target = filter_has_var(INPUT_POST, 'target');
+				if( is_null($target) || $target === false ){
+					throw new Exception('source manquante.');
+				}
+
+				$target = filter_var($_POST['target'], FILTER_SANITIZE_STRING);
+				if( $target === false ){
+					throw new Exception('source incorrecte.');
+				}
+
+				$auctionId = filter_has_var(INPUT_POST, 'auctionId');
+				if( is_null($auctionId) || $auctionId === false ){
+					throw new Exception('auctionId manquante.');
+				}
+
+				$auctionId = filter_var($_POST['auctionId'], FILTER_SANITIZE_STRING);
+				if( $auctionId === false ){
+					throw new Exception('auctionId incorrecte.');
+				}
+
+				$page = filter_has_var(INPUT_POST, 'page');
+				if( is_null($page) || $page === false ){
+					throw new Exception('page manquante.');
+				}
+
+				$page = filter_var($_POST['page'], FILTER_VALIDATE_INT, array('min_range' => 1));
+				if( $page === false ){
+					throw new Exception('page incorrecte.');
+				}
+
+				$lotPage = filter_has_var(INPUT_POST, 'lotPage');
+				if( is_null($lotPage) || $lotPage === false ){
+					throw new Exception('lotPage manquante.');
+				}
+
+				$lotPage = filter_var($_POST['lotPage'], FILTER_VALIDATE_INT, array('min_range' => 1));
+				if( $lotPage === false ){
+					throw new Exception('lotPage incorrecte.');
+				}
+
+				$oTrace = new trace();
+				$trace = $oTrace->getTraceByTarget( $target );
+
+				$trace['page'] = $page;
+				$trace['auctionId'] = $auctionId;
+				$trace['lotPage'] = $lotPage;
+
+				$oTrace->updTrace( $trace );
+				$trace = $oTrace->getTraceByTarget( $target );
 				$response = $trace;
 			break;
 		default:

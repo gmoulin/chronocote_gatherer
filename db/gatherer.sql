@@ -14,7 +14,7 @@ SET time_zone = "+00:00";
 --
 -- Database: `gatherer`
 --
-USE mouli_gatherer;
+-- USE mouli_gatherer;
 
 -- --------------------------------------------------------
 
@@ -58,9 +58,9 @@ DROP TABLE IF EXISTS `trace`;
 CREATE TABLE IF NOT EXISTS `trace` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `target` varchar(20) NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `page` int(10) NOT NULL DEFAULT '1',
-  `next` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `auctionId` varchar(255) NOT NULL DEFAULT '',
+  `lotPage` int(10) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `target` (`target`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
@@ -69,8 +69,8 @@ CREATE TABLE IF NOT EXISTS `trace` (
 -- Dumping data for table `trace`
 --
 
-INSERT INTO `trace` (`id`, `target`, `timestamp`, `page`, `next`) VALUES
-(1, 'antiquorum', '0000-00-00 00:00:00', 1, '0000-00-00 00:00:00'),
-(2, 'christies', '0000-00-00 00:00:00', 1, '0000-00-00 00:00:00'),
-(3, 'sothebys', '0000-00-00 00:00:00', 1, '0000-00-00 00:00:00');
+INSERT INTO `trace` (`id`, `target`) VALUES
+(1, 'antiquorum'),
+(2, 'christies'),
+(3, 'sothebys');
 SET FOREIGN_KEY_CHECKS=1;

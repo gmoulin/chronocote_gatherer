@@ -236,7 +236,6 @@ class candidate extends commun {
 			));
 
 			$result = $exists->fetchAll();
-			file_put_contents('/var/tmp/debug.log', print_r($result, true));
 			return count($result) > 0 ? 1 : 0;
 
 		} catch ( PDOException $e ) {
