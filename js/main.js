@@ -3,6 +3,8 @@ var $body, $win, $doc, $formModal, $form, $confirmModal,
 	$parts, $navLinks, $listContainer, $help,
 	$lightboxImg, $notify,
 	activeTab, target,
+	nextPage = false,
+	stop = false,
 	updating = 0;
 
 /**
@@ -158,11 +160,12 @@ var formErrors = function( data ){
 var progress = function( msg, cssClass ){
 	'use strict';
 	if( typeof cssClass == 'undefined' ) cssClass = '';
+	else if( cssClass.indexOf('text-') !== 0 ) cssClass = 'text-'+ cssClass;
 
 	$progressionModalBody
 		.find('ul').append('<li class="'+ cssClass +'">'+ msg +'</li>');
 
-	$progressionModalBody.scrollTop($progressionModalBody[0].scrollHeight);
+	$progressionModalBody.scrollTop( $progressionModalBody[0].scrollHeight );
 };
 
 /** _____________________________________________ DATA GATHERING **/
@@ -191,15 +194,20 @@ var progress = function( msg, cssClass ){
 		completedPage = false;
 
 		$progressionModal.modal('show')
-			.find('.stop').show().next().hide().end().end()
-			.find('ul').html('');
+			.find('.stop').show().next().hide();
+
+		if( !nextPage ){
+			$progressionModal.find('ul').html('');
+		}
+
+		nextPage = false;
 
 		progress('Récupération de la page #'+ last[ activeTab ].page +' du catalogue '+ activeTab);
 		progress('Comptez environ 30s');
 
 		$.ajax({
 			url: 'ajax.php',
-			data: 'action=proxyList&target='+ activeTab +'&page='+ last[ activeTab ].page +'&url='+ $.base64.encode(conf.listUrl),
+			data: 'action=proxyList&target='+ activeTab +'&page='+ last[ activeTab ].page +'&url='+ $.base64.encode( conf.listUrl ),
 			type: 'POST',
 			timeout: 2 * 60 * 1000,
 			dataType: 'text',
@@ -235,7 +243,6 @@ var progress = function( msg, cssClass ){
 					//use isLastPage and completePage to check if page number should be increased
 					if( completedPage && !isLastPage ){
 						progress('Page complètement analysée, augmentation du numéro de page pour '+ activeTab.capitalize());
-						return; //TODO debug, remove
 
 						$.ajax({
 							url: 'ajax.php',
@@ -248,6 +255,13 @@ var progress = function( msg, cssClass ){
 						.done(function(data){
 							if( data.page ){
 								last[ activeTab ] = data;
+
+								if( nextPage ){
+									progress('Passage à la prochaine page dans 5 secondes', 'info');
+									window.setTimeout(function(){
+										parseTarget();
+									}, 5000);
+								}
 							} else {
 								progress('Échec de la mise à jour des informations (numéro de page)', 'error');
 							}
@@ -258,6 +272,10 @@ var progress = function( msg, cssClass ){
 					}
 				})
 				.fail(function(){
+					if( stop ){
+						progress('Traitement stoppé sur demande', 'info');
+						progress('Toute auction partiellement traitée (au moins un lot enregistré) sera considérée comme complètement traitée et sera omise à la prochaine vérification', 'warning');
+					}
 					$progressionModal.find('.finished').removeClass('btn-success').addClass('btn-error');
 				})
 				.always(function(){
@@ -295,6 +313,8 @@ var progress = function( msg, cssClass ){
 
 	var parseAntiquorumResults = function( dfd, activeTab, conf, $lots ){
 		'use strict';
+		if( stop ) return dfd.reject();
+
 		var i = -1,
 			lot, nextDate,
 			maxDate = 0,
@@ -305,12 +325,20 @@ var progress = function( msg, cssClass ){
 			isfullPage = size == conf.maxLotPerPage;
 
 		var lotsLoop = function( dfd ){
+			if( stop ) return dfd.reject();
 			if( size === 0 ){
 				progress('Aucun lot trouvé');
 				return dfd.resolve();
 			}
 
 			i++;
+			if( i >= size && lots.length === 0 ){
+				progress('Aucun lot valide trouvé');
+				completedPage = isfullPage;
+				nextPage = true;
+				return dfd.resolve();
+			}
+
 			if( i >= size ){
 				progress(lots.length +' lots valides trouvés - récupération de leurs détails');
 				i = -1; //reset index for byLot loop
@@ -325,6 +353,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var analyseLot = function( dfd ){
+			if( stop ) return dfd.reject();
 			$block = $lot.parents('table').eq(1);
 
 			$futureAuction = $block.find('.bidonlinestart input');
@@ -381,10 +410,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var byLot = function( dfd ){
-			if( lots.length === 0 ){
-				progress('Aucun lot valide trouvé');
-				return dfd.resolve();
-			}
+			if( stop ) return dfd.reject();
 
 			i++;
 			if( i >= lots.length ){
@@ -398,6 +424,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var getDetail = function( dfd ){
+			if( stop ) return dfd.reject();
 			progress('Vérification et récupération des détails pour auction #'+ lot.auctionId +' lot #'+ lot.lotId);
 
 			//gather lot informations
@@ -453,6 +480,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var addLot = function( dfd ){
+			if( stop ) return dfd.reject();
 			progress('Sauvegarde du lot en attente de validation');
 			$.ajax({
 				url: 'ajax.php',
@@ -492,15 +520,18 @@ var progress = function( msg, cssClass ){
 
 	var parseSothebysResults = function( dfd, activeTab, conf, $auctions ){
 		'use strict';
+		if( stop ) return dfd.reject();
 		var i = -1,
 			auctions = [],
 			maxDate = 0,
 			size = $auctions.length,
 			lots = [],
 			isfullPage = size == conf.maxLotPerPage,
+			auctionParsed = false,
 			j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lot, lotsListUrls;
 
 		var auctionsLoop = function( dfd ){
+			if( stop ) return dfd.reject();
 			if( size === 0 ){
 				progress('Aucun lot trouvé');
 				return dfd.resolve();
@@ -521,6 +552,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var analyseAuction = function( dfd ){
+			if( stop ) return dfd.reject();
 			date = $.trim( $auction.find('.startAuctionDate').text().replace(/\n/gm, ' ').replace(/ +/g, ' ') );
 
 			if( date.indexOf('-') > -1 ){ //range
@@ -551,8 +583,17 @@ var progress = function( msg, cssClass ){
 		};
 
 		var byAuction = function( dfd ){
+			if( stop ) return dfd.reject();
 			if( auctions.length === 0 ){
 				progress('Aucune auction valide trouvée');
+				return dfd.resolve();
+			}
+
+			if( auctionParsed ){
+				if( i + 1 < length ){
+					completedPage = false; // only one auction per gathering for sothebys, still more on page
+				}
+				progress('Traitement fini pour auction #'+ auction.auctionId, 'success');
 				return dfd.resolve();
 			}
 
@@ -569,6 +610,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var checkAuction = function( dfd ){
+			if( stop ) return dfd.reject();
 			progress('Vérification pour auction #'+ auction.auctionId);
 			//check if auction has already been gathered
 			$.ajax({
@@ -594,7 +636,8 @@ var progress = function( msg, cssClass ){
 		};
 
 		var getAuctionDetail = function( dfd ){
-			progress('Récupération des lots pour auction #'+ auction.auctionId);
+			if( stop ) return dfd.reject();
+			progress('Récupération des lots');
 
 			//gather lot informations
 			$.ajax({
@@ -611,15 +654,14 @@ var progress = function( msg, cssClass ){
 				var $data = $(data);
 
 				lotsListUrls = $data.find('#ecatNavMenu').find('.lot-paging').find('.page-num').map(function(){ return $(this).attr('href'); /* this.href would return http://currenthost/... */ }).get();
-				console.log(lotsListUrls);
-				$lots = $data.find('.listBlock');
+				$lots = $data.find('#listBlock');
 
 				nbLots = $data.find('#filterTotal').text();
 				nbPages = lotsListUrls.length;
 
-				j = -1;
-
 				progress(nbLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
+				j = -1;
+				lots = [];
 				return dfd.pipe( lotsPagesLoop(dfd) )
 			})
 			.fail(function(){
@@ -629,9 +671,10 @@ var progress = function( msg, cssClass ){
 		};
 
 		var lotsPagesLoop = function( dfd ){
+			if( stop ) return dfd.reject();
 			j++;
 
-			progress('Traitement des lots pour auction '+ (i + 1) +' / '+ size);
+			progress('Traitement des lots');
 
 			if( j >= nbPages ){
 				progress('Récupération des lots finis pour auction #'+ auction.auctionId);
@@ -647,9 +690,8 @@ var progress = function( msg, cssClass ){
 		};
 
 		var getLotsPage = function( dfd ){
-			progress('Récupération des lots de la page '+ (j + 1) +' / '+ nbPages +' pour auction #'+ auction.auctionId);
-
-			console.log('action=proxyLotsList&target='+ activeTab +'&referer='+ auction.sourceUrl +'&url='+ conf.baseUrl + lotsListUrls[ j ]);
+			if( stop ) return dfd.reject();
+			progress('Récupération des lots de la page '+ (j + 1) +' / '+ nbPages);
 
 			//gather lot informations
 			$.ajax({
@@ -676,6 +718,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var byLotsPage = function( dfd ){
+			if( stop ) return dfd.reject();
 			progress('Analyse des lots pour auction #'+ auction.auctionId);
 
 			$lots.find('.list-lot-item').each(function(){
@@ -683,8 +726,9 @@ var progress = function( msg, cssClass ){
 
 				lot = {};
 
-				lot.thumbnail = $.base64.encode( $lot.find('.list-lot-item-col1').find('img').attr('data-src') );
-				lot.sourceUrl = $lot.find('.list-lot-item-col1').attr('href');
+				lot.thumbnail = $.base64.encode( conf.baseUrl + $lot.find('.list-lot-item-col1').find('img').attr('data-src') );
+				lot.url = $lot.find('.list-lot-item-col1').attr('href');
+				lot.sourceUrl = $.base64.encode( lot.url );
 
 				lot.id = 0;
 				lot.lotId = $.trim( $lot.find('.list-lot-item-col2').find('h4').text() )
@@ -704,11 +748,13 @@ var progress = function( msg, cssClass ){
 		};
 
 		var lotsDetailLoop = function( dfd ){
+			if( stop ) return dfd.reject();
 			progress('Récupération du détail des lots pour auction #'+ auction.auctionId);
 
 			j++;
 
 			if( j >= lots.length ){
+				auctionParsed = true;
 				return dfd.pipe( byAuction(dfd) );
 			}
 
@@ -718,12 +764,13 @@ var progress = function( msg, cssClass ){
 		};
 
 		var byLot = function( dfd ){
-			progress('Lot '+ (j + 1) +' / '+ nbLots +' pour auction #'+ lot.auctionId +' lot #'+ lot.lotId);
+			if( stop ) return dfd.reject();
+			progress('Lot '+ (j + 1) +' / '+ nbLots +' pour auction #'+ auction.auctionId +' lot #'+ lot.lotId);
 
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotList&target='+ activeTab + '&url='+ $.base64.encode( conf.baseUrl + lot.sourceUrl ),
+				data: 'action=proxyLotDetail&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.sourceUrl ) + '&url='+ $.base64.encode( conf.baseUrl + lot.url ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -732,11 +779,11 @@ var progress = function( msg, cssClass ){
 			.done(function( data ){
 				data = data.substr(data.indexOf('<body'), data.indexOf('</html>')).replace(/src=/g, 'data-src=');
 
-				var $data = $(data);
+				var $data = $('<div>'+ data +'</div>');
 
-				var imgUrl = $data.find('#lotMainImage1').find('img').attr('data-src');
-				lot.medium = $.base64.encode( imgUrl );
-				lot.full = $.base64.encode( imgUrl.substring(0, imgUrl.indexOf('.thumb')) );
+				var imgUrl = $data.find('.lotMainImage').eq(0).find('img').attr('data-src');
+				lot.medium = $.base64.encode( conf.baseUrl + imgUrl );
+				lot.full = $.base64.encode( conf.baseUrl + imgUrl.substring(0, imgUrl.indexOf('.thumb')) );
 				lot.criteria = $.trim( $data.find('.lotBlock').find('div, ul').remove().end().text() );
 
 				lot.auctionId = auction.auctionId;
@@ -754,6 +801,7 @@ var progress = function( msg, cssClass ){
 		};
 
 		var addLot = function( dfd ){
+			if( stop ) return dfd.reject();
 			progress('Sauvegarde du lot en attente de validation');
 			$.ajax({
 				url: 'ajax.php',
@@ -966,6 +1014,14 @@ var progress = function( msg, cssClass ){
 
 			$this.addClass('disabled');
 
+			stop = false;
 			parseTarget();
 		});
+
+	/** _____________________________________________ PARSE ACTION **/
+		$progressionModal
+			.on('click', '.stop', function(){
+				stop = true;
+			});
+
 })(window, document, jQuery, undefined);

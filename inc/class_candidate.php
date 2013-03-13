@@ -148,6 +148,8 @@ class candidate extends commun {
 	}
 
 	/**
+	 * remove data from candidate and set it to "deleted" status
+	 * the source, auctionId and lotId are keept for future checks
 	 * @param integer $id
 	 */
 	public function delCandidate( $id ){
