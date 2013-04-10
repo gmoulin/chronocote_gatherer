@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS `trace` (
   UNIQUE KEY `target` (`target`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
 
+ALTER TABLE `trace` ADD `month` INT( 10 ) NOT NULL DEFAULT '1',
+ADD `year` INT( 10 ) NOT NULL DEFAULT '2007'
+
 --
 -- Dumping data for table `trace`
 --

@@ -57,5 +57,63 @@ class trace extends commun {
 			erreur_pdo($e, get_class( $this ), __FUNCTION__);
 		}
 	}
+
+	/**
+	 * @param array $data
+	 */
+	public function updTraceDate( $data ){
+		try {
+			//book
+			$upd = $this->db->prepare("
+				UPDATE trace
+				SET month = :month,
+					year = :year,
+				WHERE target = :target
+			");
+
+			$params = array(
+				':target' => $data['target'],
+				':month' => $data['month'],
+				':year' => $data['year'],
+			);
+
+			$upd->execute( $params );
+
+		} catch ( Exception $e ){
+			erreur_pdo($e, get_class( $this ), __FUNCTION__);
+		}
+	}
+
+	/**
+	 * @param array $data
+	 */
+	public function updTraceWithDate( $data ){
+		try {
+			//book
+			$upd = $this->db->prepare("
+				UPDATE trace
+				SET page = :page,
+					auctionId = :auctionId,
+					lotPage = :lotPage,
+					month = :month,
+					year = :year,
+				WHERE target = :target
+			");
+
+			$params = array(
+				':target' => $data['target'],
+				':page' => $data['page'],
+				':auctionId' => $data['auctionId'],
+				':lotPage' => $data['lotPage'],
+				':month' => $data['month'],
+				':year' => $data['year'],
+			);
+
+			$upd->execute( $params );
+
+		} catch ( Exception $e ){
+			erreur_pdo($e, get_class( $this ), __FUNCTION__);
+		}
+	}
 }
 ?>

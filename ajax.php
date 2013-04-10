@@ -45,12 +45,38 @@ try {
 					throw new Exception('url incorrecte.');
 				}
 
+				if( $target == 'christies' ){
+					$month = filter_has_var(INPUT_POST, 'month');
+					if( is_null($month) || $month === false ){
+						throw new Exception('mois manquant.');
+					}
+
+					$month = filter_var($_POST['month'], FILTER_VALIDATE_INT, array('min_range' => 1, 'max_range' => 12));
+					if( $month === false ){
+						throw new Exception('mois incorrect.');
+					}
+
+					$year = filter_has_var(INPUT_POST, 'year');
+					if( is_null($year) || $year === false ){
+						throw new Exception('année manquante.');
+					}
+
+					$year = filter_var($_POST['year'], FILTER_VALIDATE_INT, array('min_range' => 2007, 'max_range' => date('Y')));
+					if( $year === false ){
+						throw new Exception('année incorrecte.');
+					}
+				}
+
+
 				if( $target == 'antiquorum' ){
 					$postData = 'action=search&s_searchtype=1&s_order=lotid.desc&s_hideauctions=&s_keywords=&s_fromprice=&s_toprice=&s_auction=0&s_grading=-1&s_batchstep=10&searchsubmit=SEARCH';
 
 				} else if( $target == 'sothebys' ){
 					//end date timestamp to javascript format (milliseconds)
 					$postData = 'invertLocations=false&eventTypes=/data/dictionaries/eventType/AUC&departments=/data/departments/watches&showPast=true&startDate=1167606000000&endDate='.(time() * 1000).'&_charset_=utf-8&tzOffset=-3600000&filterExtended=true&ajaxScrolling=false&ascing=asc&orderBy=date&part=true&delete=undefined&from='.($page - 1 * 10).'&to='.($page * 10);
+
+				} else if ( $target == 'christies' ){
+					$postData = 'month='.$month.'&year='.$year.'&locations=&scids=9&initialpageload=false';
 				}
 
 				$url = filter_var(base64_decode($url), FILTER_SANITIZE_URL);
@@ -109,6 +135,7 @@ try {
 						$output = curl_exec($ch);
 						curl_close($ch);
 					}
+
 				} elseif( $target == 'sothebys' ){
 					//first curl to get a session id
 					$ch = curl_init();
@@ -137,6 +164,25 @@ try {
 						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
 					}
 					$output = curl_exec($ch);
+					curl_close($ch);
+
+				} elseif( $target == 'christies' ){
+					//first curl to get a session id
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, 'http://www.christies.com/results/?'.$postData);
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_COOKIESESSION, true);
+					curl_setopt($ch, CURLOPT_HEADER, 1);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					if( $_SESSION['christies_cookie'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['christies_cookie']);
+					}
+					$output = curl_exec($ch);
+					preg_match('/^Set-Cookie: (.*?);/m', $output, $m);
+					$_SESSION['christies_cookie'] = isset($m[1]) ? $m[1] : '';
 					curl_close($ch);
 				}
 
@@ -170,7 +216,6 @@ try {
 
 				$output = '';
 				if( $target == 'sothebys' ){
-					//need a post
 					$ch = curl_init();
 					curl_setopt($ch, CURLOPT_URL, $url);
 					curl_setopt($ch, CURLOPT_POST, 0);
@@ -181,6 +226,22 @@ try {
 					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://www.sothebys.com/en/auctions/results.html');
 					if( $_SESSION['sothebys_cookie'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
+					}
+					$output = curl_exec($ch);
+					curl_close($ch);
+
+				} elseif( $target == 'christies' ){
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, $url);
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_HEADER, false);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://www.christies.com/');
+					if( $_SESSION['christies_cookie'] != '' ){
 						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
 					}
 					$output = curl_exec($ch);
@@ -224,7 +285,6 @@ try {
 
 				$output = '';
 				if( $target == 'sothebys' ){
-					//need a post
 					$ch = curl_init();
 					curl_setopt($ch, CURLOPT_URL, $url);
 					curl_setopt($ch, CURLOPT_POST, 0);
@@ -233,9 +293,26 @@ try {
 					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
 					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-					curl_setopt($ch, CURLOPT_REFERER, $referer);
-					curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['cookie']);
-					//curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
+					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://www.sothebys.com/en/auctions/results.html');
+					if( $_SESSION['sothebys_cookie'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
+					}
+					$output = curl_exec($ch);
+					curl_close($ch);
+
+				} elseif( $target == 'christies' ){
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, $url);
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_HEADER, false);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://www.christies.com/');
+					if( $_SESSION['christies_cookie'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['christies_cookie']);
+					}
 					$output = curl_exec($ch);
 					curl_close($ch);
 				}
@@ -468,6 +545,28 @@ try {
 					throw new Exception('lotPage incorrecte.');
 				}
 
+				if( $target == 'christies' ){
+					$month = filter_has_var(INPUT_POST, 'month');
+					if( is_null($month) || $month === false ){
+						throw new Exception('mois manquant.');
+					}
+
+					$month = filter_var($_POST['month'], FILTER_VALIDATE_INT, array('min_range' => 1, 'max_range' => 12));
+					if( $month === false ){
+						throw new Exception('mois incorrect.');
+					}
+
+					$year = filter_has_var(INPUT_POST, 'year');
+					if( is_null($year) || $year === false ){
+						throw new Exception('année manquante.');
+					}
+
+					$year = filter_var($_POST['year'], FILTER_VALIDATE_INT, array('min_range' => 2007, 'max_range' => date('Y')));
+					if( $year === false ){
+						throw new Exception('année incorrecte.');
+					}
+				}
+
 				$oTrace = new trace();
 				$trace = $oTrace->getTraceByTarget( $target );
 
@@ -477,6 +576,29 @@ try {
 
 				$oTrace->updTrace( $trace );
 				$trace = $oTrace->getTraceByTarget( $target );
+				$response = $trace;
+			break;
+		case 'increaseDate':
+				$target = filter_has_var(INPUT_POST, 'target');
+				if( is_null($target) || $target === false ){
+					throw new Exception('source manquante.');
+				}
+
+				$target = filter_var($_POST['target'], FILTER_SANITIZE_STRING);
+				if( $target === false ){
+					throw new Exception('source incorrecte.');
+				}
+
+				$oTrace = new trace();
+				$trace = $oTrace->getTraceByTarget( $target );
+				if( $trace['month'] + 1 > 12 ){
+					$trace['month'] = 1;
+					$trace['year']++;
+				} else {
+					$trace['month']++;
+				}
+
+				$oTrace->updTraceDate( $trace );
 				$response = $trace;
 			break;
 		default:
