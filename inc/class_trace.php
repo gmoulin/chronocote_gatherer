@@ -40,7 +40,9 @@ class trace extends commun {
 				UPDATE trace
 				SET page = :page,
 					auctionId = :auctionId,
-					lotPage = :lotPage
+					lotPage = :lotPage,
+					month = :month,
+					year = :year
 				WHERE target = :target
 			");
 
@@ -49,6 +51,8 @@ class trace extends commun {
 				':page' => $data['page'],
 				':auctionId' => $data['auctionId'],
 				':lotPage' => $data['lotPage'],
+				':month' => $data['month'],
+				':year' => $data['year'],
 			);
 
 			$upd->execute( $params );

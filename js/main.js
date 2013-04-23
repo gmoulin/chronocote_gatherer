@@ -189,7 +189,8 @@ var progress = function( msg, cssClass ){
 			maxLotPerPage: 30 // do not change
 		}
 	};
-	var completedPage = false; //for Trace
+	var completedPage = false,
+		isLastPage;
 	/**
 	 * get target site list page #num (use trace last data)
 	 * with progress display
@@ -208,7 +209,12 @@ var progress = function( msg, cssClass ){
 
 		nextPage = false;
 
-		progress('Récupération de la page #'+ last[ activeTab ].page +' du catalogue '+ activeTab);
+		var tmp = '';
+		if( activeTab == 'christies' ){
+			tmp = ', '+ (parseInt(last[ activeTab ].month, 10) < 10 ? '0' : '') + last[ activeTab ].month +'-'+ last[ activeTab ].year;
+		}
+
+		progress('Récupération de la page #'+ last[ activeTab ].page +' du catalogue '+ activeTab + tmp);
 		progress('Comptez environ 30s');
 
 		var params = 'action=proxyList&target='+ activeTab +'&page='+ last[ activeTab ].page +'&url='+ $.base64.encode( conf.listUrl );
@@ -227,7 +233,7 @@ var progress = function( msg, cssClass ){
 		.done(function( data ){
 			progress('Récupération finie - analyse des résultats');
 
-			var $data, $lots, isLastPage;
+			var $data, $lots;
 			if( activeTab == 'antiquorum' ){
 				//get only the <body>, also change <img> srcs' to data-srcs' to avoid images requests
 				data = data.substring(data.indexOf('<body'), data.indexOf('</html>') - 1).replace(/src=/g, 'data-src=');
@@ -260,35 +266,37 @@ var progress = function( msg, cssClass ){
 					}
 
 					//update trace page
-					//use isLastPage and completePage to check if page number should be increased
-					if( activeTab == 'antiquorum' && completedPage && !isLastPage ){
-						progress('Page complètement analysée, augmentation du numéro de page pour '+ activeTab.capitalize());
+					//use isLastPage and completedPage to check if page number should be increased
+					if( activeTab == 'antiquorum'){
+						if( completedPage && !isLastPage ){
+							progress('Page complètement analysée, augmentation du numéro de page pour '+ activeTab.capitalize());
 
-						$.ajax({
-							url: 'ajax.php',
-							data: 'action=increasePage&target='+ activeTab,
-							type: 'POST',
-							dataType: 'json',
-							timeout: 2000,
-							cache: false
-						})
-						.done(function(data){
-							if( data.page ){
-								last[ activeTab ] = data;
+							$.ajax({
+								url: 'ajax.php',
+								data: 'action=increasePage&target='+ activeTab,
+								type: 'POST',
+								dataType: 'json',
+								timeout: 2000,
+								cache: false
+							})
+							.done(function(data){
+								if( data.page ){
+									last[ activeTab ] = data;
 
-								if( nextPage ){
-									progress('Passage à la prochaine page dans 5 secondes', 'info');
-									window.setTimeout(function(){
-										parseTarget();
-									}, 5000);
+									if( nextPage ){
+										progress('Passage à la prochaine page dans 5 secondes', 'info');
+										window.setTimeout(function(){
+											parseTarget();
+										}, 5000);
+									}
+								} else {
+									progress('Échec de la mise à jour des informations (numéro de page)', 'error');
 								}
-							} else {
+							})
+							.fail(function(){
 								progress('Échec de la mise à jour des informations (numéro de page)', 'error');
-							}
-						})
-						.fail(function(){
-							progress('Échec de la mise à jour des informations (numéro de page)', 'error');
-						});
+							});
+						}
 					}
 
 					if( activeTab == 'sothebys' ) {
@@ -315,20 +323,26 @@ var progress = function( msg, cssClass ){
 					}
 
 					if( activeTab == 'christies' ){
-						progress('Page complètement analysée, sauvegarde sauvegarde de l\'état d\'avancement pour '+ activeTab.capitalize());
+						progress('Analyse de l\'auction finie, limitation à une auction par vérification, sauvegarde sauvegarde de l\'état d\'avancement pour '+ activeTab.capitalize());
 
 						$.ajax({
 							url: 'ajax.php',
-							data: 'action=updateLast&target='+ activeTab,
+							data: 'action=updateLast&target='+ activeTab +'&'+ $.param( last[ activeTab ] ),
 							type: 'POST',
 							dataType: 'json',
 							timeout: 2000,
 							cache: false
 						})
-						.done(function(data){
+						.done(function( data ){
 							if( data.page ){
 								last[ activeTab ] = data;
 
+								if( nextPage ){
+									progress('Passage à la prochaine page dans 5 secondes', 'info');
+									window.setTimeout(function(){
+										parseTarget();
+									}, 5000);
+								}
 							} else {
 								progress('Échec de la mise à jour des informations', 'error');
 							}
@@ -616,7 +630,7 @@ var progress = function( msg, cssClass ){
 			lots = [],
 			isfullPage = size == conf.maxLotPerPage,
 			auctionParsed = false,
-			j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lot, lotsListUrls, totalLots;
+			j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lotsListUrls, totalLots;
 
 		var auctionsLoop = function( dfd ){
 			if( stop ) return dfd.reject();
@@ -754,7 +768,7 @@ var progress = function( msg, cssClass ){
 				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
 				j = -1;
 				lots = [];
-				return dfd.pipe( lotsPagesLoop(dfd) )
+				return dfd.pipe( lotsPagesLoop(dfd) );
 			})
 			.fail(function(){
 				progress('Échec du chargement du détail d\'une auction', 'error');
@@ -822,7 +836,7 @@ var progress = function( msg, cssClass ){
 				lot.sourceUrl = $.base64.encode( lot.url );
 
 				lot.id = 0;
-				lot.lotId = $.trim( $lot.find('.list-lot-item-col2').find('h4').text() )
+				lot.lotId = $.trim( $lot.find('.list-lot-item-col2').find('h4').text() );
 				lot.title = $.trim( $lot.find('.list-lot-item-col2').find('h2').text() );
 
 				var $estimate = $lot.find('.curr-convert').eq(0);
@@ -937,12 +951,6 @@ var progress = function( msg, cssClass ){
 		return dfd.pipe( auctionsLoop(dfd) );
 	};
 
-	//TODO gestion du mois / année de la page des auctions
-	//TODO traiter une page de la liste à la fois (toutes les auctions)
-	//TODO détection pagination, passage à la bonne page, traitement des auctions
-	//TODO ne pas dépasser le mois et l'année courante
-	//TODO gestion de la page des lots en cours
-
 	/**
 	 * christies's have a filtered auction list,
 	 * get one,
@@ -964,40 +972,91 @@ var progress = function( msg, cssClass ){
 			isfullPage = size == conf.maxLotPerPage,
 			auctionParsed = false,
 			hasWatchesCategory = false,
-			watchCategoryUrl, j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lot, lotsListUrls, totalLots;
+			watchCategoryUrl, j, k, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lotsListUrls, totalLots;
 
 		var auctionsLoop = function( dfd ){
 			if( stop ) return dfd.reject();
 			if( size === 0 ){
-				progress('Aucun lot trouvé');
+				progress('Aucune auction trouvée');
+
+				nextPage = true;
+				if( isLastPage ){
+
+					//augmentation du mois / année
+					d = new Date();
+					d.setFullYear( last[ activeTab ].year );
+					d.setMonth( parseInt(last[ activeTab ].month, 10) - 1 );
+					d.setDate(1);
+
+					d.setMonth( d.getMonth() + 1 );
+
+					d2 = new Date();
+
+					if( d2.getMonth() > d.getMonth() ){
+						last[ activeTab ].page = 1;
+						last[ activeTab ].month = d.getMonth() + 1;
+						last[ activeTab ].year = d.getFullYear();
+						last[ activeTab ].auctionId = '';
+					} else {
+						progress('dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+					}
+
+				} else {
+					last[ activeTab ].page = parseInt(last[ activeTab ].page, 10) + 1;
+				}
+
 				return dfd.resolve();
 			}
 
 			i++;
 			if( i >= size ){
-				auction = null;
+				progress(auctions.length +' auctions valides trouvées');
+
+				i = -1;
+
 				//check if the storage auction url is in the list
 				if( last[ activeTab ].auctionId !== '' ){
 					for( var k = 0; k < auctions.length; k += 1 ){
-						if( auctions[ k ].auctionId == last[ activeTab ].auctionId){
+						if( auctions[ k ].auctionId == last[ activeTab ].auctionId ){
 							auction = auctions[ k ];
 							break;
 						}
 					}
 
 					if( auction ){
-						progress('auction en cours de traitement trouvée, #'+ auction.auctionId);
-						i = k;
-						return dfd.pipe( getAuctionDetail(dfd) );
+						progress('dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+						i = k; //byAuction does an i++
+						if( i + 1 >= auctions.length ){
+							nextPage = true;
+							if( isLastPage ){
+								//augmentation du mois / année
+								var d = new Date();
+								d.setFullYear( last[ activeTab ].year );
+								d.setMonth( parseInt(last[ activeTab ].month, 10) - 1 );
+								d.setDate(1);
+
+								d.setMonth( d.getMonth() + 1 );
+
+								var d2 = new Date();
+
+								if( d2.getMonth() > d.getMonth() && d2.getFullYear() >= d.getFullYear() ){
+									last[ activeTab ].page = 1;
+									last[ activeTab ].month = d.getMonth() + 1;
+									last[ activeTab ].year = d.getFullYear();
+									last[ activeTab ].auctionId = '';
+								}
+
+							} else {
+								last[ activeTab ].page = parseInt(last[ activeTab ].page, 10) + 1;
+							}
+
+							return dfd.resolve();
+						}
 					}
 				}
 
-				progress(auctions.length +' auctions valides trouvées - récupération des lots pour la première');
-				i = -1; //reset counter for byAuction loop
 				return dfd.pipe( byAuction(dfd) );
 			}
-
-			progress('Auction '+ (i + 1) +' / '+ size);
 
 			$auction = $auctions.eq(i);
 
@@ -1042,33 +1101,43 @@ var progress = function( msg, cssClass ){
 				return dfd.resolve();
 			}
 
+			var d, d2;
+
 			if( auctionParsed ){ // auction lots page parsed
-				progress('Traitement fini pour auction #'+ auction.auctionId +' page '+ (parseInt(last[ activeTab ].lotPage, 10) + 1), 'success');
+				progress('Traitement fini pour auction #'+ auction.auctionId, 'success');
+			}
 
-				if( i + 1 < auctions.length ){
-					completedPage = false; // only one auction per gathering for christies, still more on page
+			i++;
+			if( i >= auctions.length ){
+				progress('Analyse de la liste d\'auction finie', 'success');
+				completedPage = true;
+				last[ activeTab ].page = parseInt(last[ activeTab ].page, 10) + 1;
 
-					last[ activeTab ].auctionId = auction.auctionId;
+				nextPage = true;
+				if( isLastPage ){
+					//augmentation du mois / année
+					d = new Date();
+					d.setFullYear( last[ activeTab ].year );
+					d.setMonth( parseInt(last[ activeTab ].month, 10) - 1 );
+					d.setDate(1);
 
-					if( lotsListUrls[ last[ activeTab ].lotPage ] === undefined ){
-						last[ activeTab ].lotPage = 0;
+					d.setMonth( d.getMonth() + 1 );
+
+					d2 = new Date();
+
+					if( d2.getMonth() > d.getMonth() ){
+						last[ activeTab ].page = 1;
+						last[ activeTab ].month = d.getMonth() + 1;
+						last[ activeTab ].year = d.getFullYear();
 					}
-
 				} else {
 					last[ activeTab ].page = parseInt(last[ activeTab ].page, 10) + 1;
-					last[ activeTab ].auctionId = '';
-					last[ activeTab ].lotPage = 0;
 				}
 
 				return dfd.resolve();
 			}
 
-			i++;
-			if( i >= auctions.length ){
-				progress('Analyse finie', 'success');
-				completedPage = isfullPage;
-				return dfd.resolve();
-			}
+			progress('Auction '+ (i + 1) +' / '+ size);
 
 			auction = auctions[i];
 			hasWatchesCategory = false;
@@ -1127,7 +1196,7 @@ var progress = function( msg, cssClass ){
 				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
 				j = -1;
 				lots = [];
-				return dfd.pipe( lotsPagesLoop(dfd) )
+				return dfd.pipe( lotsPagesLoop(dfd) );
 			})
 			.fail(function(){
 				progress('Échec du chargement du détail d\'une auction', 'error');
@@ -1139,12 +1208,12 @@ var progress = function( msg, cssClass ){
 			if( stop ) return dfd.reject();
 			j++;
 
-			progress('Traitement des lots');
-
-			if( last[ activeTab ].lotPage > 0 ){
-				progress('Reprise du traitement à la page '+ last[ activeTab ].lotPage);
-				j = parseInt( last[ activeTab ].lotPage, 10 );
+			if( j >= nbPages ){
+				auctionParsed = true;
+				return dfd.pipe( byAuction(dfd) );
 			}
+
+			progress('Traitement des lots');
 
 			if( j === 0 ){ //first page, already have the data
 				return dfd.pipe( analyseLotsPage(dfd) );
@@ -1157,6 +1226,7 @@ var progress = function( msg, cssClass ){
 			if( stop ) return dfd.reject();
 			progress('Récupération des lots de la page '+ (j + 1) +' / '+ nbPages);
 
+			console.log('getLotsPage', conf.baseUrl + lotsListUrls[ j ]);
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
@@ -1185,6 +1255,7 @@ var progress = function( msg, cssClass ){
 			if( stop ) return dfd.reject();
 			progress('Analyse des lots pour auction #'+ auction.auctionId);
 
+			lots = [];
 			$lots.each(function(){
 				var $lot = $(this);
 
@@ -1207,33 +1278,32 @@ var progress = function( msg, cssClass ){
 
 			nbLots = lots.length;
 
-			j = -1;
+			k = -1;
 			return dfd.pipe( lotsDetailLoop(dfd) ); // only one page lot per gathering for sotheby's
 		};
 
 		var lotsDetailLoop = function( dfd ){
 			if( stop ) return dfd.reject();
 
-			j++;
+			k++;
 
-			if( j >= lots.length ){
-				auctionParsed = true;
+			if( k >= lots.length ){
 				last[ activeTab ].lotPage = parseInt( last[ activeTab ].lotPage, 10 );
-				return dfd.pipe( byAuction(dfd) );
+				return dfd.pipe( lotsPagesLoop(dfd) );
 			}
 
-			if( j === 0 ){
+			if( k === 0 ){
 				progress('Récupération du détail des lots pour auction #'+ auction.auctionId);
 			}
 
-			lot = lots[ j ];
+			lot = lots[ k ];
 
 			return dfd.pipe( byLot(dfd) );
 		};
 
 		var byLot = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Lot '+ (j + 1) +' / '+ nbLots +' pour auction #'+ auction.auctionId +' lot #'+ lot.lotId);
+			progress('Lot '+ (k + 1) +' / '+ nbLots +' pour auction #'+ auction.auctionId +' lot #'+ lot.lotId);
 
 			console.log( lot.url );
 
@@ -1253,7 +1323,9 @@ var progress = function( msg, cssClass ){
 
 				lot.medium = $.base64.encode( $data.find('#main-link').find('img').attr('data-src') );
 				var fullUrl = $data.find('#main-link').attr('href');
-				lot.full = $.base64.encode( fullUrl.substring(fullUrl.indexOf('http:'), fullUrl.indexOf('\')')) );
+				//console.log($data.find('#main-link'), fullUrl, lot);
+				if( fullUrl ) lot.full = $.base64.encode( fullUrl.substring(fullUrl.indexOf('http:'), fullUrl.indexOf('\')')) );
+				else lot.full = null;
 
 				lot.estimates = $.trim( $data.find('.estimate-wrapper').find('.estimate-info-items').find('.currency-info-item').eq(0).text() );
 
@@ -1265,7 +1337,7 @@ var progress = function( msg, cssClass ){
 				lot.auctionDate = auction.auctionDate;
 				lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ lot.price +' '+ lot.currency;
 
-				console.log(lot);
+				//console.log(lot);
 
 				return dfd.pipe( addLot(dfd) );
 			})
@@ -1311,6 +1383,7 @@ var progress = function( msg, cssClass ){
 			});
 		};
 
+		//start sequence
 		return dfd.pipe( auctionsLoop(dfd) );
 	};
 

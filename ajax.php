@@ -76,7 +76,7 @@ try {
 					$postData = 'invertLocations=false&eventTypes=/data/dictionaries/eventType/AUC&departments=/data/departments/watches&showPast=true&startDate=1167606000000&endDate='.(time() * 1000).'&_charset_=utf-8&tzOffset=-3600000&filterExtended=true&ajaxScrolling=false&ascing=asc&orderBy=date&part=true&delete=undefined&from='.($page - 1 * 10).'&to='.($page * 10);
 
 				} else if ( $target == 'christies' ){
-					$postData = 'month='.$month.'&year='.$year.'&locations=&scids=9&initialpageload=false';
+					$postData = 'month='.$month.'&year='.$year.'&locations=&scids=9&initialpageload=false'.($page > 1 ? '&pg='.$page : '');
 				}
 
 				$url = filter_var(base64_decode($url), FILTER_SANITIZE_URL);
@@ -573,6 +573,11 @@ try {
 				$trace['page'] = $page;
 				$trace['auctionId'] = $auctionId;
 				$trace['lotPage'] = $lotPage;
+
+				if( $target == 'christies' ){
+					$trace['month'] = $month;
+					$trace['year'] = $year;
+				}
 
 				$oTrace->updTrace( $trace );
 				$trace = $oTrace->getTraceByTarget( $target );
