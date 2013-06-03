@@ -6,6 +6,7 @@ var $body, $win, $doc, $formModal, $form, $confirmModal,
 	nextPage = false,
 	stop = false,
 	updating = 0,
+	items = {},
 	page, scrolling, noMoreWarn;
 
 /**
@@ -64,6 +65,10 @@ var getList = function(){
 		.done(function( data ){
 			if( data.list && data.list.length > 0 ){
 				$list.find('tbody').append( tmpl('list_tmpl', data) );
+
+				for( var i = 0, l = data.list.length; i < l; i++ ){
+					items[ data.list[ i ].id ] = data.list[ i ];
+				}
 
 			} else {
 				if( !noMoreWarn ){
@@ -223,7 +228,11 @@ var progress = function( msg, cssClass ){
 			tmp = ', '+ (parseInt(last[ activeTab ].month, 10) < 10 ? '0' : '') + last[ activeTab ].month +'-'+ last[ activeTab ].year;
 		}
 
-		progress('Récupération de la page #'+ last[ activeTab ].page +' du catalogue '+ activeTab + tmp);
+		if( activeTab == 'antiquorum' ){
+			progress('Récupération des auctions de l\'année '+ last[ activeTab ].year +' du catalogue '+ activeTab + tmp);
+		} else {
+			progress('Récupération de la page #'+ last[ activeTab ].page +' du catalogue '+ activeTab + tmp);
+		}
 		progress('Comptez environ 30s');
 
 		var params = 'action=proxyList&target='+ activeTab +'&page='+ last[ activeTab ].page +'&url='+ $.base64.encode( conf.listUrl );
@@ -243,6 +252,7 @@ var progress = function( msg, cssClass ){
 			cache: false
 		})
 		.done(function( data ){
+			if( stop ) return false;
 			progress('Récupération finie - analyse des résultats');
 
 			var $data, $lots;
@@ -551,6 +561,7 @@ var progress = function( msg, cssClass ){
 				cache: false
 			})
 			.done(function( data ){
+				if( stop ) return dfd.reject();
 				data = data.substr(data.indexOf('<body'), data.indexOf('</html>')).replace(/src=/g, 'data-src=');
 
 				var $data = $(data);
@@ -589,7 +600,10 @@ var progress = function( msg, cssClass ){
 			}
 
 			if( nextUrl && nextUrl.length > 0 ){
-				return dfd.pipe( getLotsPage(dfd) );
+				progress('Récupération de la page dans 5 secondes');
+				window.setTimeout(function(){
+					return dfd.pipe( getLotsPage(dfd) );
+				}, 5000);
 
 			} else {
 				progress('Dernière page traitée pour auction #'+ auction.auctionId);
@@ -612,6 +626,8 @@ var progress = function( msg, cssClass ){
 				cache: false
 			})
 			.done(function( data ){
+				if( stop ) return dfd.reject();
+
 				data = data.substr(data.indexOf('<body'), data.indexOf('</html>')).replace(/src=/g, 'data-src=');
 
 				var $data = $(data);
@@ -732,10 +748,15 @@ var progress = function( msg, cssClass ){
 				cache: false
 			})
 			.done(function( data ){
+				if( stop ) return dfd.reject();
 				if( data.id && parseInt(data.id, 10) > 0 ){
 					progress('Sauvegarde effectuée');
 
-					$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
+					if( $('#list_'+ activeTab).find('tbody').find('tr').length < 25 ){
+						$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
+
+						items[ data.id ] = data;
+					}
 
 					return dfd.pipe( lotsDetailLoop(dfd) );
 
@@ -938,7 +959,10 @@ var progress = function( msg, cssClass ){
 				return dfd.pipe( analyseLotsPage(dfd) );
 			}
 
-			return dfd.pipe( getLotsPage(dfd) );
+			progress('Récupération de la page dans 5 secondes');
+			window.setTimeout(function(){
+				return dfd.pipe( getLotsPage(dfd) );
+			}, 5000);
 		};
 
 		var getLotsPage = function( dfd ){
@@ -1074,7 +1098,11 @@ var progress = function( msg, cssClass ){
 				if( data.id && parseInt(data.id, 10) > 0 ){
 					progress('Sauvegarde effectuée');
 
-					$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
+					if( $('#list_'+ activeTab).find('tbody').find('tr').length < 25 ){
+						$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
+
+						items[ data.id ] = data;
+					}
 
 					return dfd.pipe( lotsDetailLoop(dfd) );
 
@@ -1501,7 +1529,11 @@ var progress = function( msg, cssClass ){
 				if( data.id && parseInt(data.id, 10) > 0 ){
 					progress('Sauvegarde effectuée');
 
-					$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
+					if( $('#list_'+ activeTab).find('tbody').find('tr').length < 25 ){
+						$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
+
+						items[ data.id ] = data;
+					}
 
 					return dfd.pipe( lotsDetailLoop(dfd) );
 
@@ -1649,7 +1681,7 @@ var progress = function( msg, cssClass ){
 
 			var $this = $(this),
 				decoder = $('<textarea>'),
-				data = {item: JSON.parse( $this.closest('.item').attr('data-raw') )};
+				data = {item: items[ $this.attr('data-itemId') ]};
 
 			//reseting form
 			$form
