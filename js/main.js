@@ -5,7 +5,8 @@ var $body, $win, $doc, $formModal, $form, $confirmModal,
 	activeTab, target,
 	nextPage = false,
 	stop = false,
-	updating = 0;
+	updating = 0,
+	page, scrolling, noMoreWarn;
 
 /**
  * hashchange listener
@@ -25,20 +26,15 @@ var tabSwitch = function(){
 
 	if( $('#list_'+ target).length > 0 ){ // Argument is a valid tab name
 		window.location.hash = '#' + target; //security if hash empty
-
+		page = 0;
 		getList();
 	}
 };
 
 /**
  * load the list
- * @param integer type
- * 		0: new list
- * 		1: search or sort
- * 		2: list refresh after item modification
- * 		3: new page on current list (infinite scroll)
  */
-var getList = function( type ){
+var getList = function(){
 	'use strict';
 	//multiple call protection
 	if( updating !== 1 ){
@@ -50,9 +46,14 @@ var getList = function( type ){
 
 		$body.css('cursor', 'progress');
 
+		if( page === 0 ){
+			$list.find('tbody').empty();
+			noMoreWarn = false;
+		}
+
 		$.ajax({
 			url: 'ajax.php',
-			data: 'action=list&target='+ activeTab,
+			data: 'action=list&page='+ page +'&target='+ activeTab,
 			type: 'POST',
 			dataType: 'json'
 		})
@@ -62,10 +63,16 @@ var getList = function( type ){
 		})
 		.done(function( data ){
 			if( data.list && data.list.length > 0 ){
-				$list.find('tbody').html( tmpl('list_tmpl', data) );
+				$list.find('tbody').append( tmpl('list_tmpl', data) );
+
 			} else {
-				$notify.notify({message: {text: 'Aucun lot trouvé pour ce site'}, type: 'warning'}).show();
+				if( !noMoreWarn ){
+					$notify.notify({message: {text: page === 0 ? 'Aucun lot trouvé pour ce site' : 'Aucun lot supplémentaire trouvé pour ce site'}, type: 'warning'}).show();
+					if( page > 0 ) noMoreWarn = true;
+				}
 			}
+
+			scrolling = false;
 		})
 		.fail(function(){
 			//inform user
@@ -171,8 +178,10 @@ var progress = function( msg, cssClass ){
 /** _____________________________________________ DATA GATHERING **/
 	var config = {
 		antiquorum: {
-			listUrl: 'http://catalog.antiquorum.com/catalog.html?action=list&s_batch=',
-			detailUrl: 'http://catalog.antiquorum.com/catalog.html?action=load&lotid=LID&auctionid=AID',
+			listUrl: 'http://catalog.antiquorum.com/index.html',
+			lotListUrl: 'http://catalog.antiquorum.com/catalog_asta.html?hideauctions=1&auctionid=AID',
+			lotDetailUrl: 'http://catalog.antiquorum.com/catalog.html?action=load&lotid=LID&auctionid=AID',
+			baseUrl: 'http://catalog.antiquorum.com',
 			minYear: 2007,
 			maxLotPerPage: 10 // do not change
 		},
@@ -220,6 +229,9 @@ var progress = function( msg, cssClass ){
 		var params = 'action=proxyList&target='+ activeTab +'&page='+ last[ activeTab ].page +'&url='+ $.base64.encode( conf.listUrl );
 		if( activeTab == 'christies' ){
 			params += '&month='+ last[ activeTab ].month +'&year='+ last[ activeTab ].year;
+
+		} else if( activeTab == 'antiquorum' ){
+			params += '&year='+ last[ activeTab ].year;
 		}
 
 		$.ajax({
@@ -238,10 +250,10 @@ var progress = function( msg, cssClass ){
 				//get only the <body>, also change <img> srcs' to data-srcs' to avoid images requests
 				data = data.substring(data.indexOf('<body'), data.indexOf('</html>') - 1).replace(/src=/g, 'data-src=');
 				$data = $(data);
-				$parts = $data.find('.searchtitle');
-				isLastPage = $data.find('.maintablesearch').eq(1).find('.navigationbar').eq(2).find('a').length === 0;
+				$parts = $data.find('.maintable');
+				isLastPage = true; //all auctions for the year are on one page
 
-				progress($parts.length +' lots potentiels trouvés');
+				progress($parts.length +' auctions potentielles trouvées');
 
 			} else if( activeTab == 'sothebys' ){
 				$data = $('<tbody>'+ data +'</tbody>');
@@ -268,38 +280,41 @@ var progress = function( msg, cssClass ){
 					//update trace page
 					//use isLastPage and completedPage to check if page number should be increased
 					if( activeTab == 'antiquorum'){
-						if( completedPage && !isLastPage ){
-							progress('Page complètement analysée, augmentation du numéro de page pour '+ activeTab.capitalize());
-
-							$.ajax({
-								url: 'ajax.php',
-								data: 'action=increasePage&target='+ activeTab,
-								type: 'POST',
-								dataType: 'json',
-								timeout: 2000,
-								cache: false
-							})
-							.done(function(data){
-								if( data.page ){
-									last[ activeTab ] = data;
-
-									if( nextPage ){
-										progress('Passage à la prochaine page dans 5 secondes', 'info');
-										window.setTimeout(function(){
-											parseTarget();
-										}, 5000);
-									}
-								} else {
-									progress('Échec de la mise à jour des informations (numéro de page)', 'error');
-								}
-							})
-							.fail(function(){
-								progress('Échec de la mise à jour des informations (numéro de page)', 'error');
-							});
+						nextPage = true;
+						if( completedPage ){
+							progress('Page complètement analysée, passage à l\'année suivante pour '+ activeTab.capitalize());
 						}
-					}
 
-					if( activeTab == 'sothebys' ) {
+						$.ajax({
+							url: 'ajax.php',
+							data: 'action=updateLast&target='+ activeTab + $.param( last[ activeTab ] ),
+							type: 'POST',
+							dataType: 'json',
+							timeout: 2000,
+							cache: false
+						})
+						.done(function(data){
+							if( data.page ){
+								last[ activeTab ] = data;
+
+								if( !stop && nextPage ){
+									progress('Passage à la prochaine auction ou année dans 30 secondes', 'info');
+									window.setTimeout(function(){
+										if( !stop ){
+											$progressionModalBody.find('ul').empty();
+											parseTarget();
+										}
+									}, 30000);
+								}
+							} else {
+								progress('Échec de la mise à jour des informations', 'error');
+							}
+						})
+						.fail(function(){
+							progress('Échec de la mise à jour des informations', 'error');
+						});
+
+					} else if( activeTab == 'sothebys' ) {
 						progress('Page de lots complètement analysée, sauvegarde de l\'état d\'avancement pour '+ activeTab.capitalize());
 						$.ajax({
 							url: 'ajax.php',
@@ -320,9 +335,8 @@ var progress = function( msg, cssClass ){
 						.fail(function(){
 							progress('Échec de la mise à jour des informations', 'error');
 						});
-					}
 
-					if( activeTab == 'christies' ){
+					} else if( activeTab == 'christies' ){
 						progress('Analyse de l\'auction finie, limitation à une auction par vérification, sauvegarde sauvegarde de l\'état d\'avancement pour '+ activeTab.capitalize());
 
 						$.ajax({
@@ -337,11 +351,14 @@ var progress = function( msg, cssClass ){
 							if( data.page ){
 								last[ activeTab ] = data;
 
-								if( nextPage ){
-									progress('Passage à la prochaine page dans 5 secondes', 'info');
+								if( !stop && nextPage ){
+									progress('Passage à la prochaine page dans 30 secondes', 'info');
 									window.setTimeout(function(){
-										parseTarget();
-									}, 5000);
+										if( !stop ){
+											$progressionModalBody.find('ul').empty();
+											parseTarget();
+										}
+									}, 30000);
 								}
 							} else {
 								progress('Échec de la mise à jour des informations', 'error');
@@ -354,9 +371,8 @@ var progress = function( msg, cssClass ){
 				})
 				.fail(function(){
 					if( stop ){
-						progress('Traitement stoppé sur demande', 'info');
-						if( activeTab == 'sothebys' ){
-							progress('Toute auction partiellement traitée (au moins un lot enregistré) sera considérée comme complètement traitée et sera omise à la prochaine vérification', 'warning');
+						if( activeTab == 'antiquorum' || activeTab == 'sothebys' ){
+							progress('Toute auction partiellement traitée (au moins un lot enregistré) sera retraitée complètement à la prochaine vérification', 'warning');
 						}
 					}
 
@@ -365,8 +381,7 @@ var progress = function( msg, cssClass ){
 				.always(function(){
 					if( !nextPage ){
 						$('#parse').removeClass('disabled');
-						$progressionModal
-							.find('.stop').hide().next().show();
+						$progressionModal.find('.stop').hide().next().show();
 					}
 				});
 		})
@@ -404,20 +419,20 @@ var progress = function( msg, cssClass ){
 	 * parsing it page per page
 	 * store the current page number
 	 */
-	var parseAntiquorumResults = function( dfd, activeTab, conf, $lots ){
+	var parseAntiquorumResults = function( dfd, activeTab, conf, $auctions ){
 		'use strict';
 		if( stop ) return dfd.reject();
 
 		var i = -1,
-			lot, nextDate,
+			auctions = [],
 			maxDate = 0,
+			size = $auctions.length,
 			lots = [],
-			$lot, $block, $futureAuction, $detailLink,
-			title, date, tmp, ts, href,
-			size = $lots.length,
-			isfullPage = size == conf.maxLotPerPage;
+			isfullPage = size == conf.maxLotPerPage,
+			auctionParsed = false,
+			j, k, nbPages, auction, $auction, $date, date, ts, nbLots, $lots, lot, nextUrl, totalLots;
 
-		var lotsLoop = function( dfd ){
+		var auctionsLoop = function( dfd ){
 			if( stop ) return dfd.reject();
 			if( size === 0 ){
 				progress('Aucun lot trouvé');
@@ -425,156 +440,289 @@ var progress = function( msg, cssClass ){
 			}
 
 			i++;
-			if( i >= size && lots.length === 0 ){
-				progress('Aucun lot valide trouvé');
-				completedPage = isfullPage;
-				nextPage = true;
+			if( i >= size ){
+				auction = null;
+				//check if the storage auction url is in the list
+				if( last[ activeTab ].auctionId !== '' ){
+					for( var k = 0; k < auctions.length; k += 1 ){
+						if( auctions[ k ].auctionId == last[ activeTab ].auctionId){
+							auction = auctions[ k ];
+							break;
+						}
+					}
+
+					if( auction ){
+						progress('Dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+						i = k + 1;
+
+						if( i >= auctions.length ){
+							auctionParsed = true;
+							return dfd.pipe( byAuction(dfd) );
+						}
+
+						auction = auctions[ i ];
+						return dfd.pipe( getAuctionDetail(dfd) );
+					}
+				}
+
+				progress(auctions.length +' auctions valides trouvées - récupération des lots pour la première');
+				i = -1; //reset counter for byAuction loop
+				return dfd.pipe( byAuction(dfd) );
+			}
+
+			progress('Auction '+ (i + 1) +' / '+ size);
+
+			$auction = $auctions.eq(i);
+
+			return dfd.pipe( analyseAuction(dfd) );
+		};
+
+		var analyseAuction = function( dfd ){
+			if( stop ) return dfd.reject();
+
+			//gather available data
+			auction = {};
+
+			auction.source = activeTab;
+			auction.auctionTitle = $.trim( $auction.find('.titlelistauctions').text().replace(/’/, '\'') );
+
+			auction.auctionId = $auction.find('a').attr('href').replace(/javascript:opencatalog\('/, '').replace(/','0'\);?/, '');
+
+			auction.sourceUrl = conf.lotListUrl.replace(/AID/, auction.auctionId);
+
+			auctions.push(auction);
+
+			progress('Auction trouvée, auction #'+ auction.auctionId);
+
+			return dfd.pipe( auctionsLoop(dfd) );
+		};
+
+		var byAuction = function( dfd ){
+			if( stop ) return dfd.reject();
+			if( auctions.length === 0 ){
+				progress('Aucune auction valide trouvée');
 				return dfd.resolve();
 			}
 
-			if( i >= size ){
-				progress(lots.length +' lots valides trouvés - récupération de leurs détails');
-				i = -1; //reset index for byLot loop
-				return dfd.pipe( byLot(dfd) );
-			}
+			if( auctionParsed ){ // auction lots page parsed
+				progress('Traitement fini pour auction #'+ auction.auctionId, 'success');
 
-			progress('Lot '+ (i + 1) +' / '+ size);
+				if( i + 1 < auctions.length ){
+					completedPage = false; // only one auction per gathering for antiquorum, still more on page
 
-			$lot = $lots.eq(i);
+					last[ activeTab ].auctionId = auction.auctionId;
+					last[ activeTab ].lotPage = 0;
 
-			return dfd.pipe( analyseLot(dfd) );
-		};
-
-		var analyseLot = function( dfd ){
-			if( stop ) return dfd.reject();
-			$block = $lot.parents('table').eq(1);
-
-			$futureAuction = $block.find('.bidonlinestart input');
-			title = $.trim( $block.find('.bidauctiontitle').text() );
-			date = title.substr(title.length - 10);
-			tmp = date.split('-');
-			if( tmp.length == 3 ){
-				date = tmp[2] +'-'+ tmp[1] +'-'+ tmp[0]; //YYYY-MM-DD
-				ts = new Date(tmp[2], tmp[1] - 1, tmp[0]);
-				ts = ts.getTime() / 1000;
-			} else {
-				ts = 0;
-			}
-
-			if( $futureAuction.length > 0 ){
-				//@TODO nextDate
-				progress('Lot d\'une vente future - ignoré');
-				return dfd.pipe( lotsLoop(dfd) );
-
-			} else if( conf.hasOwnProperty('minYear') && tmp[2] < conf.minYear ){
-				progress('Lot d\'une vente trop éloignée dans le passé (< '+ conf.minYear +') - ignoré');
-				return dfd.pipe( lotsLoop(dfd) );
-
-			} else {
-				progress('Lot d\'une vente passée - analyse');
-				//gather available data
-				lot = {};
-
-				lot.source = activeTab;
-				lot.auctionTitle = title.substr(0, title.length - 10);
-				lot.auctionDate = date;
-
-				maxDate = (maxDate < ts ? ts : maxDate);
-
-				$detailLink = $block.find('.imagetd').find('a');
-
-				href = $detailLink.attr('href'); //javascript:opendetail(291,269);
-				tmp = href.replace(/javascript:opendetail\(/, '').replace(/\);/, '');
-				tmp = tmp.split(',');
-				if( tmp.length == 2 ){
-					lot.sourceUrl = $.base64.encode( conf.detailUrl.replace(/LID/, tmp[0]).replace(/AID/, tmp[1]) );
-					lot.auctionId = tmp[1];
-					lot.lotId = tmp[0];
+				} else {
+					var year = (new Date()).getFullYear();
+					if( last[ activeTab ].year != year ){
+						last[ activeTab ].year++;
+						last[ activeTab ].auctionId = '';
+					}
+					last[ activeTab ].lotPage = 0;
 				}
 
-				lot.thumbnail = $.base64.encode( $detailLink.find('img').attr('data-src') );
-
-				lots.push(lot);
-
-				progress('Lot trouvé, auction #'+ lot.auctionId +' lot #'+ lot.lotId);
-
-				return dfd.pipe( lotsLoop(dfd) );
+				return dfd.resolve();
 			}
-		};
-
-		var byLot = function( dfd ){
-			if( stop ) return dfd.reject();
 
 			i++;
-			if( i >= lots.length ){
+			if( i >= auctions.length ){
 				progress('Analyse finie', 'success');
 				completedPage = isfullPage;
 				return dfd.resolve();
 			}
 
-			lot = lots[i];
-			return dfd.pipe( getDetail(dfd) );
+			auction = auctions[i];
+
+			return dfd.pipe( getAuctionDetail(dfd) );
 		};
 
-		var getDetail = function( dfd ){
+		var getAuctionDetail = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Vérification et récupération des détails pour auction #'+ lot.auctionId +' lot #'+ lot.lotId);
+			progress('Récupération des lots');
 
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyDetail&'+ $.param(lot),
-				dataType: 'json',
+				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( auction.sourceUrl ),
+				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
 				cache: false
 			})
 			.done(function( data ){
-				if( data.detail ){
-					//get only the <body>, also change <img> srcs' to data-srcs' to avoid images requests
-					var detail = data.detail.substr(data.detail.indexOf('<body'), data.detail.indexOf('</html>') - 1).replace(/src=/g, 'data-src='),
-						$data = $(detail),
-						$details, note, price;
+				data = data.substr(data.indexOf('<body'), data.indexOf('</html>')).replace(/src=/g, 'data-src=');
 
-					lot.id = 0;
-					lot.title = $.trim( $data.find('.detailsubtitle').text() );
+				var $data = $(data);
 
-					$details = $data.find('.detailpayload');
-					lot.criteria = $.trim( $details.eq(0).text() );
-					//remove first estimate and replace other occurence by |, also change the thousand separator of prices
-					lot.estimates = $.trim( $details.eq(1).text().replace(/Estimate: /, '').replace(/ Estimate: /g, '|').replace(/,/g, '\'') );
-					lot.medium = $.base64.encode( $details.eq(2).next().find('img').attr('data-src') );
-					lot.full = $.base64.encode( $details.eq(3).find('a').attr('href') );
+				nextUrl = $data.find('.maintablesearch').last().find('.navigationbar').last().find('a').attr('href');
 
-					note = $.trim( $data.find('.detailnotes').first().find('.bidonlinestart').first().text() );
-					price = note.replace('Sold including buyer\'s premium:', '').replace(',', '');
-					price = price.split(' ');
-					lot.price = price[0];
-					lot.currency = price[1];
+				$lots = $data.find('.searchtitle').closest('table').closest('table');
 
-					lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ note;
+				totalLots = $data.find('.searchcount').text().replace(/Lots found: /, '');
+				nbPages = Math.ceil( parseInt(totalLots, 10) / conf.maxLotPerPage );
 
-					progress('Lot validé');
-					return dfd.pipe( addLot(dfd) );
-
-				} else if( data.id > 0 ){
-					progress('Lot déjà présent - ignoré');
-					return dfd.pipe( byLot(dfd) );
-
-				} else {
-					progress('Échec de la récupération du détail du lot', 'error');
-					return dfd.reject();
-				}
+				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
+				j = -1;
+				lots = [];
+				return dfd.pipe( lotsPagesLoop(dfd) );
 			})
 			.fail(function(){
-				progress('Échec du chargement du détail d\'un lot', 'error');
+				progress('Échec du chargement du détail d\'une auction', 'error');
 				return dfd.reject();
 			});
 		};
 
+		var lotsPagesLoop = function( dfd ){
+			if( stop ) return dfd.reject();
+			j++;
+
+			progress('Traitement des lots');
+
+			if( last[ activeTab ].lotPage > 0 ){
+				progress('Reprise du traitement à la page '+ last[ activeTab ].lotPage);
+				j = parseInt( last[ activeTab ].lotPage, 10 );
+			}
+
+			if( j === 0 ){ //first page, already have the data
+				return dfd.pipe( analyseLotsPage(dfd) );
+			}
+
+			if( nextUrl && nextUrl.length > 0 ){
+				return dfd.pipe( getLotsPage(dfd) );
+
+			} else {
+				progress('Dernière page traitée pour auction #'+ auction.auctionId);
+				auctionParsed = true;
+				return dfd.pipe( byAuction(dfd) );
+			}
+		};
+
+		var getLotsPage = function( dfd ){
+			if( stop ) return dfd.reject();
+			progress('Récupération des lots de la page '+ (j + 1) +' / '+ nbPages);
+
+			//gather lot informations
+			$.ajax({
+				url: 'ajax.php',
+				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( auction.sourceUrl ) +'&url='+ $.base64.encode( conf.baseUrl + nextUrl ),
+				dataType: 'text',
+				type: 'POST',
+				timeout: 2 * 60 * 1000,
+				cache: false
+			})
+			.done(function( data ){
+				data = data.substr(data.indexOf('<body'), data.indexOf('</html>')).replace(/src=/g, 'data-src=');
+
+				var $data = $(data);
+
+				nextUrl = $data.find('.maintablesearch').last().find('.navigationbar').last().find('a').attr('href');
+
+				$lots = $data.find('.searchtitle');
+
+				return dfd.pipe( analyseLotsPage(dfd) );
+			})
+			.fail(function(){
+				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auctionId, 'error');
+				return dfd.reject();
+			});
+		};
+
+		var analyseLotsPage = function( dfd ){
+			if( stop ) return dfd.reject();
+			progress('Analyse des lots pour auction #'+ auction.auctionId);
+
+			$lots.each(function(){
+				var $lot = $(this).closest('table').parent().closest('table');
+
+				lot = {};
+
+				var thumbUrl = $lot.find('.imagetd').find('img').attr('data-src');
+
+				if( thumbUrl ){
+					lot.thumbnail = $.base64.encode( thumbUrl );
+					lot.medium = $.base64.encode( thumbUrl.replace(/thumb/, 'medium') );
+					lot.full = $.base64.encode( thumbUrl.replace(/thumb/, 'full') );
+				}
+
+				var href = $lot.find('.imagetd').find('a').attr('href');
+				lot.lotId = href.substring(href.indexOf('(') + 1, href.indexOf(','));
+				lot.url = conf.lotDetailUrl.replace(/LID/, lot.lotId).replace(/AID/, auction.auctionId);
+				lot.sourceUrl = $.base64.encode( lot.url );
+
+				lot.id = 0;
+				lot.title = $.trim( $lot.find('.searchsubtitle').find('font').empty().end().html().replace(/<br ?\/?>/, ' ').replace(/’/, '\'') );
+
+				if( !auction.hasOwnProperty('auctionDate') ){
+					var title = $.trim( $lot.find('.bidauctiontitle').html() );
+					var tmp = title.replace(/<br ?\/?>/, '|').split('|');
+
+					var date = new Date( Date.parse( tmp[1] ) );
+					auction.auctionDate = date.getFullYear() +'-'+ (date.getMonth() + 1 < 10 ? '0' : '') + (date.getMonth() + 1) +'-'+ (date.getDate() < 10 ? '0' : '') + date.getDate();
+				}
+
+				lot.auctionId = auction.auctionId;
+				lot.source = activeTab;
+				lot.auctionTitle = auction.auctionTitle;
+				lot.auctionDate = auction.auctionDate;
+
+				var price = $.trim( $lot.find('.bidonlinestart').text() );
+				if( price && price.length > 0 ){
+					price = $.trim( price.substring( price.indexOf(':') + 1 ) ).split(' ');
+					lot.price = price[0].replace(/,/, '');
+					lot.currency = price[1];
+				} else {
+					lot.price = 'N/A';
+					lot.currency = 'N/A';
+				}
+
+				var estimates = $.trim( $lot.find('.searchfooter').first().find('.searchfooterlight').empty().end().text() );
+				if( estimates && estimates.length > 0 ){
+					lot.estimates = $.trim( estimates.replace(/Estimate:/, '') );
+				} else {
+					lot.estimates = 'N/A';
+				}
+
+				var criteria = $.trim( $lot.find('.searchpayload').text() );
+				if( criteria && criteria.length > 0 ){
+					lot.criteria = criteria.replace(/’/, '\'');
+				} else {
+					lot.criteria = 'N/A';
+				}
+
+				lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ lot.price +' '+ lot.currency;
+
+				lots.push( lot );
+			});
+
+			nbLots = lots.length;
+
+			k = -1;
+			return dfd.pipe( lotsDetailLoop(dfd) ); // only one page lot per gathering for sotheby's
+		};
+
+		var lotsDetailLoop = function( dfd ){
+			if( stop ) return dfd.reject();
+
+			k++;
+
+			if( k >= lots.length ){
+				lots = [];
+				return dfd.pipe( lotsPagesLoop(dfd) );
+			}
+
+			if( k === 0 ){
+				progress('Sauvegarde des lots pour auction #'+ auction.auctionId);
+			}
+
+			lot = lots[ k ];
+
+			return dfd.pipe( addLot(dfd) );
+		};
+
 		var addLot = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Sauvegarde du lot en attente de validation');
+			progress('Sauvegarde du lot #'+ lot.lotId +' en attente de validation');
 			$.ajax({
 				url: 'ajax.php',
 				data: 'action=add&'+ $.param(lot),
@@ -589,7 +737,7 @@ var progress = function( msg, cssClass ){
 
 					$('#list_'+ activeTab).find('tbody').append( tmpl('list_tmpl', { list: [data] }) );
 
-					return dfd.pipe( byLot(dfd) );
+					return dfd.pipe( lotsDetailLoop(dfd) );
 
 				} else {
 					if( data.error ){
@@ -608,7 +756,7 @@ var progress = function( msg, cssClass ){
 			});
 		};
 
-		return dfd.pipe( lotsLoop(dfd) );
+		return dfd.pipe( auctionsLoop(dfd) );
 	};
 
 	/**
@@ -628,7 +776,6 @@ var progress = function( msg, cssClass ){
 			maxDate = 0,
 			size = $auctions.length,
 			lots = [],
-			isfullPage = size == conf.maxLotPerPage,
 			auctionParsed = false,
 			j, nbPages, auction, $auction, $date, date, ts, $lots, nbLots, lot, lotsListUrls, totalLots;
 
@@ -732,7 +879,7 @@ var progress = function( msg, cssClass ){
 			i++;
 			if( i >= auctions.length ){
 				progress('Analyse finie', 'success');
-				completedPage = isfullPage;
+				completedPage = true;
 				return dfd.resolve();
 			}
 
@@ -998,7 +1145,7 @@ var progress = function( msg, cssClass ){
 						last[ activeTab ].year = d.getFullYear();
 						last[ activeTab ].auctionId = '';
 					} else {
-						progress('dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+						progress('Dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
 					}
 
 				} else {
@@ -1150,8 +1297,6 @@ var progress = function( msg, cssClass ){
 			if( stop ) return dfd.reject();
 			progress('Récupération des lots');
 
-			console.log(conf.lotListUrl + auction.auctionId);
-
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
@@ -1226,7 +1371,6 @@ var progress = function( msg, cssClass ){
 			if( stop ) return dfd.reject();
 			progress('Récupération des lots de la page '+ (j + 1) +' / '+ nbPages);
 
-			console.log('getLotsPage', conf.baseUrl + lotsListUrls[ j ]);
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
@@ -1305,8 +1449,6 @@ var progress = function( msg, cssClass ){
 			if( stop ) return dfd.reject();
 			progress('Lot '+ (k + 1) +' / '+ nbLots +' pour auction #'+ auction.auctionId +' lot #'+ lot.lotId);
 
-			console.log( lot.url );
-
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
@@ -1323,7 +1465,6 @@ var progress = function( msg, cssClass ){
 
 				lot.medium = $.base64.encode( $data.find('#main-link').find('img').attr('data-src') );
 				var fullUrl = $data.find('#main-link').attr('href');
-				//console.log($data.find('#main-link'), fullUrl, lot);
 				if( fullUrl ) lot.full = $.base64.encode( fullUrl.substring(fullUrl.indexOf('http:'), fullUrl.indexOf('\')')) );
 				else lot.full = null;
 
@@ -1336,8 +1477,6 @@ var progress = function( msg, cssClass ){
 				lot.auctionTitle = auction.auctionTitle;
 				lot.auctionDate = auction.auctionDate;
 				lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ lot.price +' '+ lot.currency;
-
-				//console.log(lot);
 
 				return dfd.pipe( addLot(dfd) );
 			})
@@ -1402,11 +1541,31 @@ var progress = function( msg, cssClass ){
 	$formModal = $('#edit_modal').modal({show: false});
 	$form = $('#edit_form');
 	$confirmModal = $('#confirm_modal');
-	$progressionModal = $('#progression_modal').modal({show: false});
+	$progressionModal = $('#progression_modal');
 	$progressionModalBody = $progressionModal.find('.modal-body');
+
+	$progressionModal.modal({show: false, keyboard: false});
+	scrolling = false;
+	page = 0;
 
 	//initial load
 		tabSwitch();
+
+	/** _____________________________________________ INFINITE SCROLL **/
+		$win.scroll(function(){
+			if( !scrolling ){
+				var wintop = $(window).scrollTop(),
+					docheight = $(document).height(),
+					winheight = $(window).height(),
+					scrolltrigger = 0.75;
+
+				if( (wintop/ (docheight-winheight)) > scrolltrigger ){
+					scrolling = true;
+					page++;
+					getList();
+				}
+			}
+		});
 
 	/** _____________________________________________ NAV **/
 		//tab change via menu and url#hash
@@ -1451,11 +1610,12 @@ var progress = function( msg, cssClass ){
 							//inform user
 							$notify.notify({message: {text: 'Enregistrement réussi'}, type: 'success'}).show();
 
-							getList();
+							//TODO update row
+							//getList();
 
 						} else {
 							//form errors display
-							formErrors( data );
+							formErrors();
 						}
 					});
 				}
@@ -1489,7 +1649,7 @@ var progress = function( msg, cssClass ){
 
 			var $this = $(this),
 				decoder = $('<textarea>'),
-				data = {item: JSON.parse( $.base64.decode( $this.closest('.item').attr('data-raw') ) )};
+				data = {item: JSON.parse( $this.closest('.item').attr('data-raw') )};
 
 			//reseting form
 			$form
@@ -1570,6 +1730,9 @@ var progress = function( msg, cssClass ){
 		$progressionModal
 			.on('click', '.stop', function(){
 				stop = true;
+				progress('Traitement stoppé sur demande', 'info');
+				$progressionModal.find('.stop').hide().next().show();
+				nextPage = false;
 			});
 
 })(window, document, jQuery, undefined);

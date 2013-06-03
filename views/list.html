@@ -4,7 +4,7 @@
 	for( i = 0; i < list.length; i += 1 ){
 		item = list[i];
 	%>
-		<tr class="item" data-raw="<%=$.base64.encode( JSON.stringify(item) )%>">
+		<tr class="item" data-raw="<%= JSON.stringify(item) %>">
 			<td class="actions">
 				<button class="btn edit btn-warning btn-mini"
 					data-toggle="modal" data-target="#edit_modal"

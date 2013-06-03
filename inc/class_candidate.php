@@ -21,7 +21,7 @@ class candidate extends commun {
 	 * @param string $target
 	 * @return array[][]
 	 */
-	public function getCandidatesByTarget( $target ){
+	public function getCandidatesByTarget( $target, $page, $maxPerPage ){
 		try {
 			$getCandidates = $this->db->prepare("
 				SELECT *
@@ -29,6 +29,7 @@ class candidate extends commun {
 				WHERE source = :target
 				AND status = 'pending'
 				ORDER BY id ASC
+				LIMIT ".($page * $maxPerPage).", ".$maxPerPage."
 			");
 
 			$getCandidates->execute(array(':target' => $target));

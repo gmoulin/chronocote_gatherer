@@ -55,7 +55,9 @@ try {
 					if( $month === false ){
 						throw new Exception('mois incorrect.');
 					}
+				}
 
+				if( $target == 'antiquorum' || $target == 'christies' ){
 					$year = filter_has_var(INPUT_POST, 'year');
 					if( is_null($year) || $year === false ){
 						throw new Exception('année manquante.');
@@ -69,7 +71,7 @@ try {
 
 
 				if( $target == 'antiquorum' ){
-					$postData = 'action=search&s_searchtype=1&s_order=lotid.desc&s_hideauctions=&s_keywords=&s_fromprice=&s_toprice=&s_auction=0&s_grading=-1&s_batchstep=10&searchsubmit=SEARCH';
+					$postData = 'action=search&s_year='.$year;
 
 				} else if( $target == 'sothebys' ){
 					//end date timestamp to javascript format (milliseconds)
@@ -88,25 +90,20 @@ try {
 				if( $target == 'antiquorum' ){
 					//first curl to get a session id
 					$ch = curl_init();
-					curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/catalog.html');
+					curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/index.html');
 					curl_setopt($ch, CURLOPT_POST, 0);
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 					curl_setopt($ch, CURLOPT_COOKIESESSION, true);
 					curl_setopt($ch, CURLOPT_HEADER, 1);
 					$header = curl_exec($ch);
 					preg_match('/^Set-Cookie: (.*?);/m', $header, $m);
-					if( isset($m[1]) ){
-						$sessionId = $m[1];
-					} else {
-						$sessionId = 'PHPSESSID=a1526hnkmq6hfo74h1c59rbqq3';
-					}
-					$_SESSION['cookie_PHPSESSID'] = 'PHPSESSID=a1526hnkmq6hfo74h1c59rbqq3';
+					$_SESSION['cookie_PHPSESSID'] = isset($m[1]) ? $m[1] : '';
 					curl_close($ch);
 
 
 					//need a POST to "initialize" the search
 					$ch = curl_init();
-					curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/catalog.html');
+					curl_setopt($ch, CURLOPT_URL, 'http://catalog.antiquorum.com/index.html');
 					curl_setopt($ch, CURLOPT_POST, 1);
 					curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -114,27 +111,14 @@ try {
 					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
 					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-					curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/catalog.html');
+					curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/index.html');
 					curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
 					$output = curl_exec($ch);
 					curl_close($ch);
 
-					//next pages are GETs
-					if( $page > 1 ){
-						//need a post
-						$ch = curl_init();
-						curl_setopt($ch, CURLOPT_URL, $url);
-						curl_setopt($ch, CURLOPT_POST, 0);
-						curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-						curl_setopt($ch, CURLOPT_HEADER, false);
-						curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-						curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
-						curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-						curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/catalog.html');
-						curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
-						$output = curl_exec($ch);
-						curl_close($ch);
-					}
+					//http://catalog.antiquorum.com/index.html is in iso
+					$output = utf8_encode($output);
+					header('Content-Type: text/html; charset=utf-8');
 
 				} elseif( $target == 'sothebys' ){
 					//first curl to get a session id
@@ -215,7 +199,27 @@ try {
 				$referer = filter_var(base64_decode($_POST['referer']), FILTER_SANITIZE_URL);
 
 				$output = '';
-				if( $target == 'sothebys' ){
+				if( $target == 'antiquorum' ){
+					$ch = curl_init();
+					curl_setopt($ch, CURLOPT_URL, $url);
+					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+					curl_setopt($ch, CURLOPT_HEADER, false);
+					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
+					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://catalog.antiquorum.com/index.html');
+					if( $_SESSION['cookie_PHPSESSID'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['cookie_PHPSESSID']);
+					}
+					$output = curl_exec($ch);
+					curl_close($ch);
+
+					//http://catalog.antiquorum.com/index.html is in iso
+					$output = utf8_encode($output);
+					header('Content-Type: text/html; charset=utf-8');
+
+				} elseif( $target == 'sothebys' ){
 					$ch = curl_init();
 					curl_setopt($ch, CURLOPT_URL, $url);
 					curl_setopt($ch, CURLOPT_POST, 0);
@@ -242,7 +246,7 @@ try {
 					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 					curl_setopt($ch, CURLOPT_REFERER, is_string($referer) && strlen($referer) > 0 ? $referer : 'http://www.christies.com/');
 					if( $_SESSION['christies_cookie'] != '' ){
-						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['sothebys_cookie']);
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['christies_cookie']);
 					}
 					$output = curl_exec($ch);
 					curl_close($ch);
@@ -481,8 +485,20 @@ try {
 					throw new Exception('source incorrecte.');
 				}
 
+				$page = filter_has_var(INPUT_POST, 'page');
+				if( is_null($page) || $page === false ){
+					throw new Exception('page manquante.');
+				}
+
+				$page = filter_var($_POST['page'], FILTER_VALIDATE_INT, array('min_range' => 0));
+				if( $page === false ){
+					throw new Exception('page incorrecte.');
+				}
+
+				$maxPerPage = 25;
+
 				$oCandidate = new candidate();
-				$candidates = $oCandidate->getCandidatesByTarget( $target );
+				$candidates = $oCandidate->getCandidatesByTarget( $target, $page, $maxPerPage );
 
 				$response = array('list' => $candidates);
 			break;
@@ -555,7 +571,9 @@ try {
 					if( $month === false ){
 						throw new Exception('mois incorrect.');
 					}
+				}
 
+				if( $target == 'antiquorum' || $target == 'christies' ){
 					$year = filter_has_var(INPUT_POST, 'year');
 					if( is_null($year) || $year === false ){
 						throw new Exception('année manquante.');
@@ -576,6 +594,9 @@ try {
 
 				if( $target == 'christies' ){
 					$trace['month'] = $month;
+				}
+
+				if( $target == 'antiquorum' || $target == 'christies' ){
 					$trace['year'] = $year;
 				}
 
