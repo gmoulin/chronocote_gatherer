@@ -3,18 +3,16 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Jan 21, 2013 at 10:57 AM
--- Server version: 5.5.28
--- PHP Version: 5.3.10-1ubuntu3.4
+-- Generation Time: Jul 01, 2013 at 07:08 PM
+-- Server version: 5.5.31
+-- PHP Version: 5.3.10-1ubuntu3.6
 
-SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 
 --
 -- Database: `gatherer`
 --
--- USE mouli_gatherer;
 
 -- --------------------------------------------------------
 
@@ -43,12 +41,21 @@ CREATE TABLE IF NOT EXISTS `candidate` (
   `img_medium` varchar(255) DEFAULT NULL,
   `img_full` varchar(255) DEFAULT NULL,
   `modified_date` datetime DEFAULT NULL,
+  `product_identifier` varchar(255) DEFAULT NULL,
+  `validated_brand` varchar(255) DEFAULT NULL,
+  `validated_model` varchar(255) DEFAULT NULL,
+  `validated_ref` varchar(255) DEFAULT NULL,
+  `validated_case` varchar(255) DEFAULT NULL,
+  `validated_shape` varchar(255) DEFAULT NULL,
+  `validated_bracelet` varchar(255) DEFAULT NULL,
+  `validated_movement` varchar(255) DEFAULT NULL,
+  `validated_complication` varchar(255) DEFAULT NULL,
+  `validated_price` varchar(255) DEFAULT NULL,
+  `validated_currency` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `status` (`status`),
   KEY `modified_date` (`modified_date`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
-
-ALTER TABLE `candidate`  ADD `product_identifier` VARCHAR(255) NULL,  ADD `validated_brand` VARCHAR(255) NULL,  ADD `validated_model` VARCHAR(255) NULL,  ADD `validated_ref` VARCHAR(255) NULL,  ADD `validated_case` VARCHAR(255) NULL,  ADD `validated_bracelet` VARCHAR(255) NULL,  ADD `validated_movement` VARCHAR(255) NULL,  ADD `validated_complication` VARCHAR(255) NULL,  ADD `validated_price` VARCHAR(255) NULL,  ADD `validated_currency` VARCHAR(255) NULL;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=400 ;
 
 -- --------------------------------------------------------
 
@@ -69,12 +76,7 @@ CREATE TABLE IF NOT EXISTS `trace` (
   UNIQUE KEY `target` (`target`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
 
---
--- Dumping data for table `trace`
---
-
-INSERT INTO `trace` (`id`, `target`) VALUES
-(1, 'antiquorum'),
-(2, 'christies'),
-(3, 'sothebys');
-SET FOREIGN_KEY_CHECKS=1;
+INSERT INTO `trace` (`id`, `target`, `page`, `auctionId`, `lotPage`, `month`, `year`) VALUES
+(1, 'antiquorum', 1, '', 0, 1, 2007),
+(2, 'christies', 1, '', 0, 1, 2007),
+(3, 'sothebys', 1, '', 0, 1, 2007);
