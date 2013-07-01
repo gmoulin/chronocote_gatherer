@@ -28,6 +28,8 @@ var tabSwitch = function(){
 	if( $('#list_'+ target).length > 0 ){ // Argument is a valid tab name
 		window.location.hash = '#' + target; //security if hash empty
 		page = 0;
+		$('#list_'+ activeTab).find('tbody').empty();
+		items = {};
 		getList();
 	}
 };
