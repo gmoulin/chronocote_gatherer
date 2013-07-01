@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `candidate` (
   `lot_price` varchar(255) DEFAULT NULL,
   `lot_currency` varchar(10) DEFAULT NULL,
   `info` text NOT NULL,
-  `status` enum('pending','deleted','validated') NOT NULL DEFAULT 'pending',
+  `status` enum('pending','deleted','validated','sent') NOT NULL DEFAULT 'pending',
   `img_thumbnail` varchar(255) DEFAULT NULL,
   `img_medium` varchar(255) DEFAULT NULL,
   `img_full` varchar(255) DEFAULT NULL,
@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS `candidate` (
   KEY `status` (`status`),
   KEY `modified_date` (`modified_date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+ALTER TABLE `candidate`  ADD `product_identifier` VARCHAR(255) NULL,  ADD `validated_brand` VARCHAR(255) NULL,  ADD `validated_model` VARCHAR(255) NULL,  ADD `validated_ref` VARCHAR(255) NULL,  ADD `validated_case` VARCHAR(255) NULL,  ADD `validated_bracelet` VARCHAR(255) NULL,  ADD `validated_movement` VARCHAR(255) NULL,  ADD `validated_complication` VARCHAR(255) NULL,  ADD `validated_price` VARCHAR(255) NULL,  ADD `validated_currency` VARCHAR(255) NULL;
 
 -- --------------------------------------------------------
 

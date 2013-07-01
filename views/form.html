@@ -13,14 +13,29 @@
 	</div>
 	<div class="modal-footer">
 		<button type="reset" class="btn btn-warning" data-dismiss="modal">Annuler</button>
-		<button type="submit" class="btn btn-primary" form="edit_form">Valider</button>
+		<button type="submit" class="btn btn-primary" form="edit_form">Enregistrer</button>
+		<button type="button" class="btn btn-primary add_to_chronocote">Enregistrer et ajouter à Chronocote</button>
 	</div>
 </div>
 
 <script type="text/html" id="form_tmpl">
 	<div class="span6">
-		<input type="hidden" name="action" value="update" />
-		<input type="hidden" name="id" value="<%=item.id%>" />
+		<input type="hidden" id="action" name="action" value="update" />
+		<input type="hidden" id="lot_id" name="id" value="<%=item.id%>" />
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Source</label>
+			<div class="controls span9 well well-small">
+				<% if( item.source ){ %><%=item.source.capitalize()%><% } %>
+			</div>
+		</div>
+
+		<div class="control-group row-fluid">
+			<label class="control-label span3">Lien</label>
+			<div class="controls span9 well well-small">
+				<a href="<%=item.source_url%>" target="_blank"><%=item.source_url%></a>
+			</div>
+		</div>
 
 		<div class="control-group row-fluid">
 			<label class="control-label span3">Auction-Lot #</label>
@@ -60,14 +75,14 @@
 		<div class="control-group row-fluid">
 			<label class="control-label span3">Estimations du lot</label>
 			<div class="controls span9 well well-small">
-				<%=item.lot_estimates.replace(/\|/, '<br>')%>
+				<% if( item.lot_estimates ){ %><%=item.lot_estimates.replace(/\|/, '<br>')%><% } %>
 			</div>
 		</div>
 
 		<div class="control-group row-fluid">
 			<label class="control-label span3">Prix du lot</label>
 			<div class="controls span9 well well-small">
-				<%=item.lot_price%> <%=item.currency%>
+				<%=item.lot_price%> <%=item.lot_currency%>
 			</div>
 		</div>
 
@@ -91,69 +106,70 @@
 	</div>
 	<div class="span5 offset1">
 		<div class="control-group row-fluid">
-			<label class="control-label span3" for="product">Produit Chonocote</label>
+			<label class="control-label span3" for="product_identifier">Produit Chonocote (identifier)</label>
 			<div class="controls span9">
-				<input type="text" id="product" name="product" list="products" class="control input-large" value="" autocomplete="off">
+				<input type="text" id="product_identifier" name="product_identifier" list="products" class="control input-large uneditable-input" value="<%=item.product_identifier%>" autocomplete="off" readonly>
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_brand">Marque</label>
+			<div class="controls span9">
+				<input type="text" id="validated_brand" name="validated_brand" class="control input-large tm-input" value="<%=item.product_identifier%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_model">Modèle</label>
+			<div class="controls span9">
+				<input type="text" id="validated_model" name="validated_model" class="control input-large tm-input" value="<%=item.validated_model%>" autocomplete="off">
 			</div>
 		</div>
 		<div class="control-group row-fluid">
-			<label class="control-label span3" for="brand">Marque</label>
+			<label class="control-label span3" for="validated_ref">Référence</label>
 			<div class="controls span9">
-				<input type="text" id="brand" brand="brand" class="control input-large" value="" autocomplete="off">
+				<input type="text" id="validated_ref" name="validated_ref" class="control input-large" value="<%=item.validated_ref%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_case">Matériau Boîtier</label>
+			<div class="controls span9">
+				<input type="text" id="validated_case" name="validated_case" class="control input-small tm-input" value="<%=item.validated_case%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_shape">Forme Boîtier</label>
+			<div class="controls span9">
+				<input type="text" id="validated_shape" name="validated_shape" class="control input-large tm-input" value="<%=item.validated_shape%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_bracelet">Bracelet</label>
+			<div class="controls span9">
+				<input type="text" id="validated_bracelet" name="validated_bracelet" class="control input-small tm-input" value="<%=item.validated_bracelet%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_movement">Mouvement</label>
+			<div class="controls span9">
+				<input type="text" id="validated_movement" name="validated_movement" class="control input-small tm-input" value="<%=item.validated_movement%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid tm-group">
+			<label class="control-label span3" for="validated_complication">Complication</label>
+			<div class="controls span9">
+				<input type="text" id="validated_complication" name="validated_complication" class="control input-large tm-input" value="<%=item.validated_complication%>" autocomplete="off">
 			</div>
 		</div>
 		<div class="control-group row-fluid">
-			<label class="control-label span3" for="model">Modèle</label>
+			<label class="control-label span3" for="validated_estimation">Estimation</label>
 			<div class="controls span9">
-				<input type="text" id="model" model="model" class="control input-large" value="" autocomplete="off">
+				<input type="text" id="validated_estimation" name="validated_estimation" class="control input-small" value="<%=item.validated_estimation%>" autocomplete="off">
 			</div>
 		</div>
 		<div class="control-group row-fluid">
-			<label class="control-label span3" for="ref">Référence</label>
+			<label class="control-label span3" for="validated_price">Prix de vente</label>
 			<div class="controls span9">
-				<input type="text" id="ref" name="ref" class="control input-large" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="case_material">Matériau Boîtier</label>
-			<div class="controls span9">
-				<input type="text" id="case_material" name="case_material" class="control input-small tagManager" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="case_shape">Forme Boîtier</label>
-			<div class="controls span9">
-				<input type="text" id="case_shape" name="case_shape" class="control input-large" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="bracelet">Bracelet</label>
-			<div class="controls span9">
-				<input type="text" id="bracelet" name="bracelet" class="control input-small tagManager" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="movement">Mouvement</label>
-			<div class="controls span9">
-				<input type="text" id="movement" name="movement" class="control input-small tagManager" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="complication">Complication</label>
-			<div class="controls span9">
-				<input type="text" id="complication" name="complication" class="control input-large" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="estimation">Estimation</label>
-			<div class="controls span9">
-				<input type="text" id="estimation" name="estimation" class="control input-small tagManager" value="" autocomplete="off">
-			</div>
-		</div>
-		<div class="control-group row-fluid">
-			<label class="control-label span3" for="sale_price">Prix de vente</label>
-			<div class="controls span9">
-				<input type="text" id="sale_price" name="sale_price" class="control input-small tagManager" value="" autocomplete="off">
+				<input type="number" id="validated_price" name="validated_price" class="control input-small" value="<% if( item.validated_price ){%><%=item.validated_price%><%} else {%><%=item.lot_price%><%}%>" autocomplete="off" min="0">
+				<input type="text" id="validated_currency" name="validated_currency" class="control input-small" value="<% if( item.validated_currency ){%><%=item.validated_currency%><%} else {%><%=item.lot_currency%><%}%>" autocomplete="off">
 			</div>
 		</div>
 		<div class="control-group row-fluid">

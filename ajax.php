@@ -423,17 +423,18 @@ try {
 				$response = array('exists' => $check);
 			break;
 		case 'loadList':
-				if( !filter_has_var(INPUT_GET, 'field') ){
+				if( !filter_has_var(INPUT_POST, 'field') ){
 					throw new Exception('paramètre manquant.');
 				}
 
-				$field = filter_input(INPUT_GET, 'field', FILTER_SANITIZE_STRING);
+				$field = filter_input(INPUT_POST, 'field', FILTER_SANITIZE_STRING);
 				if( is_null($field) || $field === false ){
 					throw new Exception('liste incorrecte.');
 				}
 
-				//@TODO
-				$response = array();
+				$oCandidate = new candidate();
+
+				$response = $oCandidate->getDistinct( $field );
 			break;
 		case 'add':
 				$oCandidate = new candidate();
@@ -447,6 +448,7 @@ try {
 					$response = $formData['errors'];
 				}
 			break;
+		case 'send':
 		case 'update':
 				$oCandidate = new candidate();
 
@@ -454,7 +456,17 @@ try {
 
 				if( empty($formData['errors']) ){
 					$id = $oCandidate->updCandidate( $formData );
-					$response = 'ok';
+
+					if( $action == 'send' ){
+						//send data to chronocote
+						$oCandidate->updStatus( $id, 'sent' );
+
+						$response = 'ok';
+
+					} else {
+						$oCandidate->updStatus( $id, 'validated' );
+						$response = 'ok';
+					}
 				} else {
 					$response = $formData['errors'];
 				}

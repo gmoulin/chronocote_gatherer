@@ -27,7 +27,7 @@ class candidate extends commun {
 				SELECT *
 				FROM candidate
 				WHERE source = :target
-				AND status = 'pending'
+				AND status IN ('pending', 'validated')
 				ORDER BY id ASC
 				LIMIT ".($page * $maxPerPage).", ".$maxPerPage."
 			");
@@ -70,26 +70,26 @@ class candidate extends commun {
 		try {
 			$addCandidate = $this->db->prepare("
 				INSERT INTO candidate (auction_id, lot_id, source, source_url, auction_title, auction_date, auction_timestamp, lot_title, lot_criteria, lot_estimates, lot_price, lot_currency, info, img_thumbnail, img_medium, img_full, modified_date)
-				VALUES (:auctionId, :lotId, :source, :sourceUrl, :auctionTitle, :auctionDate, :auctionTs, :title, :criteria, :estimates, :price, :currency, :info, :imageThumbnail, :imageMedium, :imageFull, NOW())
+				VALUES (:auction_id, :lot_id, :source, :source_url, :auction_title, :auction_date, :auctionTs, :lot_title, :lot_criteria, :lot_estimates, :lot_price, :lot_currency, :info, :image_thumbnail, :image_medium, :image_full, NOW())
 			");
 
 			$addCandidate->execute(array(
-				':auctionId' => $data['auctionId'],
-				':lotId' => $data['lotId'],
+				':auction_id' => $data['auction_id'],
+				':lot_id' => $data['lot_id'],
 				':source' => $data['source'],
-				':sourceUrl' => $data['sourceUrl'],
-				':auctionTitle' => $data['auctionTitle'],
-				':auctionDate' => $data['auctionDate'],
-				':auctionTs' => $data['auctionDate'],
-				':title' => $data['title'],
-				':criteria' => $data['criteria'],
-				':estimates' => $data['estimates'],
-				':price' => $data['price'],
-				':currency' => $data['currency'],
+				':source_url' => $data['source_url'],
+				':auction_title' => $data['auction_title'],
+				':auction_date' => $data['auction_date'],
+				':auctionTs' => $data['auction_date'],
+				':lot_title' => $data['lot_title'],
+				':lot_criteria' => $data['lot_criteria'],
+				':lot_estimates' => $data['lot_estimates'],
+				':lot_price' => $data['lot_price'],
+				':lot_currency' => $data['lot_currency'],
 				':info' => $data['info'],
-				':imageThumbnail' => $data['imageThumbnail'],
-				':imageMedium' => $data['imageMedium'],
-				':imageFull' => $data['imageFull'],
+				':image_thumbnail' => $data['image_thumbnail'],
+				':image_medium' => $data['image_medium'],
+				':image_full' => $data['image_full'],
 			));
 
 			$candidateID = $this->db->lastInsertId();
@@ -110,35 +110,56 @@ class candidate extends commun {
 		try {
 			$updCandidate = $this->db->prepare("
 				UPDATE candidate
-				SET auction_title = :auctionTitle,
-					auction_date = :auctionDate,
+				SET auction_title = :auction_title,
+					auction_date = :auction_date,
 					auction_timestamp = :auctionTs,
-					lot_title = :title,
-					lot_criteria = :criteria,
-					lot_estimates = :estimates,
-					lot_price = :price,
-					lot_currency = :currency,
-					img_thumbnail = :imageThumbnail,
-					img_medium = :imageMedium,
-					img_full = :imageFull,
-					status = 'validated',
+					lot_title = :lot_title,
+					lot_criteria = :lot_criteria,
+					lot_estimates = :lot_estimates,
+					lot_price = :lot_price,
+					lot_currency = :lot_currency,
+					img_thumbnail = :image_thumbnail,
+					img_medium = :image_medium,
+					img_full = :image_full,
+					product_identifier = :product_identifier,
+					validated_brand = :validated_brand,
+					validated_model = :validated_model,
+					validated_ref = :validated_ref,
+					validated_case = :validated_case,
+					validated_shape = :validated_shape,
+					validated_bracelet = :validated_bracelet,
+					validated_movement = :validated_movement,
+					validated_complication = :validated_complication,
+					validated_price = :validated_price,
+					validated_currency = :validated_currency,
 					modified_date = NOW()
 				WHERE id = :id
 			");
 
 			$params = array(
 				':id' => $data['id'],
-				':auctionTitle' => $data['auctionTitle'],
-				':auctionDate' => $data['auctionDate'],
-				':auctionTs' => $data['auctionDate'],
-				':title' => $data['title'],
-				':criteria' => $data['criteria'],
-				':estimates' => $data['estimates'],
-				':price' => $data['price'],
-				':currency' => $data['currency'],
-				':imageThumbnail' => $data['imageThumbnail'],
-				':imageMedium' => $data['imageMedium'],
-				':imageFull' => $data['imageFull'],
+				':auction_title' => $data['auction_title'],
+				':auction_date' => $data['auction_date'],
+				':auctionTs' => $data['auction_date'],
+				':lot_title' => $data['lot_title'],
+				':lot_criteria' => $data['lot_criteria'],
+				':lot_estimates' => $data['lot_estimates'],
+				':lot_price' => $data['lot_price'],
+				':lot_currency' => $data['lot_currency'],
+				':image_thumbnail' => $data['image_thumbnail'],
+				':image_medium' => $data['image_medium'],
+				':image_full' => $data['image_full'],
+				':product_identifier' => $data['product_identifier'],
+				':validated_brand' => $data['validated_brand'],
+				':validated_model' => $data['validated_model'],
+				':validated_ref' => $data['validated_ref'],
+				':validated_case' => $data['validated_case'],
+				':validated_shape' => $data['validated_shape'],
+				':validated_bracelet' => $data['validated_bracelet'],
+				':validated_movement' => $data['validated_movement'],
+				':validated_complication' => $data['validated_complication'],
+				':validated_price' => $data['validated_price'],
+				':validated_currency' => $data['validated_currency'],
 			);
 
 			$updCandidate->execute( $params );
@@ -149,8 +170,33 @@ class candidate extends commun {
 	}
 
 	/**
+	 * @param integer $id
+	 * @param string $status
+	 */
+	public function updStatus( $id, $status ){
+		try {
+			$updateStatus = $this->db->prepare("
+				UPDATE candidate
+				SET status = 'validated',
+					modified_date = NOW()
+				WHERE id = :id
+			");
+
+			$params = array(
+				':id' => $id,
+				':status' => $status,
+			);
+
+			$updateStatus->execute( $params );
+
+		} catch( Exception $e ){
+			erreur_pdo($e, get_class( $this ), __FUNCTION__);
+		}
+	}
+
+	/**
 	 * remove data from candidate and set it to "deleted" status
-	 * the source, auctionId and lotId are keept for future checks
+	 * the source, auction_id and lot_id are keept for future checks
 	 * @param integer $id
 	 */
 	public function delCandidate( $id ){
@@ -169,6 +215,17 @@ class candidate extends commun {
 					img_thumbnail = NULL,
 					img_medium = NULL,
 					img_full = NULL,
+					product_identifier = NULL,
+					validated_brand = NULL,
+					validated_model = NULL,
+					validated_ref = NULL,
+					validated_case = NULL,
+					validated_shape = NULL,
+					validated_bracelet = NULL,
+					validated_movement = NULL,
+					validated_complication = NULL,
+					validated_price = NULL,
+					validated_currency = NULL,
 					status = 'deleted',
 					modified_date = NOW()
 				WHERE id = :id
@@ -274,6 +331,39 @@ class candidate extends commun {
 	}
 
 	/**
+	 * @param string $field
+	 * @return array
+	 */
+	public function getDistinct( $field ){
+		try {
+			$exists = $this->db->prepare("
+				SELECT ".$field."
+				FROM candidate
+				WHERE ".$field." IS NOT NULL
+				AND status IN ('validated', 'sent')
+			");
+
+			$exists->execute();
+
+			$result = $exists->fetchAll();
+
+			$entries = array();
+			foreach( $result as $r ){
+				if( !empty($r[ $field ]) ){
+					$tmp = explode(',', $r[ $field ]);
+
+					$entries = array_merge($entries, $tmp);
+				}
+			}
+
+			return array_unique($entries, SORT_STRING);
+
+		} catch ( PDOException $e ) {
+			erreur_pdo( $e, get_class( $this ), __FUNCTION__ );
+		}
+	}
+
+	/**
 	 * check and parse form data for add or update
 	 * errors are returned with form inputs ids as (id, text, type)
 	 *
@@ -286,21 +376,34 @@ class candidate extends commun {
 		$args = array(
 			'action'		=> FILTER_SANITIZE_STRING,
 			'id'			=> FILTER_SANITIZE_NUMBER_INT,
-			'auctionId'		=> FILTER_SANITIZE_STRING,
-			'lotId'			=> FILTER_SANITIZE_STRING,
+			//gathered fields
+			'auction_id'		=> FILTER_SANITIZE_STRING,
+			'lot_id'			=> FILTER_SANITIZE_STRING,
 			'source'		=> FILTER_SANITIZE_STRING,
-			'sourceUrl'		=> FILTER_SANITIZE_STRING,
-			'auctionTitle'	=> FILTER_SANITIZE_STRING,
-			'auctionDate'	=> FILTER_SANITIZE_STRING,
-			'title'			=> FILTER_SANITIZE_STRING,
-			'criteria'		=> FILTER_SANITIZE_STRING,
-			'estimates'		=> FILTER_SANITIZE_STRING,
-			'price'			=> FILTER_SANITIZE_STRING,
-			'currency'		=> FILTER_SANITIZE_STRING,
-			'thumbnail'		=> FILTER_SANITIZE_STRING,
-			'medium'		=> FILTER_SANITIZE_STRING,
-			'full'			=> FILTER_SANITIZE_STRING,
+			'source_url'		=> FILTER_SANITIZE_STRING,
+			'auction_title'	=> FILTER_SANITIZE_STRING,
+			'auction_date'	=> FILTER_SANITIZE_STRING,
+			'lot_title'			=> FILTER_SANITIZE_STRING,
+			'lot_criteria'		=> FILTER_SANITIZE_STRING,
+			'lot_estimates'		=> FILTER_SANITIZE_STRING,
+			'lot_price'			=> FILTER_SANITIZE_STRING,
+			'lot_currency'		=> FILTER_SANITIZE_STRING,
+			'img_thumbnail'		=> FILTER_SANITIZE_STRING,
+			'img_medium'		=> FILTER_SANITIZE_STRING,
+			'img_full'			=> FILTER_SANITIZE_STRING,
 			'info'			=> FILTER_SANITIZE_STRING,
+			//user validated fields
+			'product_identifier'			=> FILTER_SANITIZE_STRING,
+			'hidden_validated_brand'		=> FILTER_SANITIZE_STRING,
+			'hidden_validated_model'		=> FILTER_SANITIZE_STRING,
+			'validated_ref'					=> FILTER_SANITIZE_STRING,
+			'hidden_validated_case'			=> FILTER_SANITIZE_STRING,
+			'hidden_validated_shape'		=> FILTER_SANITIZE_STRING,
+			'hidden_validated_bracelet'		=> FILTER_SANITIZE_STRING,
+			'hidden_validated_movement'		=> FILTER_SANITIZE_STRING,
+			'hidden_validated_complication'	=> FILTER_SANITIZE_STRING,
+			'validated_price'				=> FILTER_SANITIZE_STRING,
+			'validated_currency'			=> FILTER_SANITIZE_STRING,
 		);
 
 		foreach( $args as $field => $validation ){
@@ -336,21 +439,21 @@ class candidate extends commun {
 
 			if( $action == 'update' || $action == 'add' ){
 				//id_auction
-				if( is_null($auctionId) || $auctionId === false ){
+				if( is_null($auction_id) || $auction_id === false ){
 					$errors[] = 'Numéro d\'auction incorrect.';
-				} elseif( empty($auctionId) ){
+				} elseif( empty($auction_id) ){
 					$errors[] = 'Numéro d\'auction requis.';
 				} else {
-					$formData['auctionId'] = trim($auctionId);
+					$formData['auction_id'] = trim($auction_id);
 				}
 
 				//id_lot
-				if( is_null($lotId) || $lotId === false ){
+				if( is_null($lot_id) || $lot_id === false ){
 					$errors[] = 'Numéro de lot incorrect.';
-				} elseif( empty($lotId) ){
+				} elseif( empty($lot_id) ){
 					$errors[] = 'Numéro de lot requis.';
 				} else {
-					$formData['lotId'] = trim($lotId);
+					$formData['lot_id'] = trim($lot_id);
 				}
 
 				//source
@@ -362,103 +465,103 @@ class candidate extends commun {
 					$formData['source'] = trim($source);
 				}
 
-				//sourceUrl
-				if( is_null($sourceUrl) || $sourceUrl === false ){
+				//source_url
+				if( is_null($source_url) || $source_url === false ){
 					$errors[] = 'URL incorrecte.';
-				} elseif( empty($sourceUrl) ){
+				} elseif( empty($source_url) ){
 					$errors[] = 'URL requise.';
 				} else {
-					$sourceUrl = filter_var(base64_decode($sourceUrl), FILTER_SANITIZE_URL);
-					if( $sourceUrl === false ){
+					$source_url = filter_var(base64_decode($source_url), FILTER_SANITIZE_URL);
+					if( $source_url === false ){
 						throw new Exception('URL incorrecte.');
 					}
 
-					$formData['sourceUrl'] = trim($sourceUrl);
+					$formData['source_url'] = trim($source_url);
 				}
 
-				//auctionTitle
-				if( is_null($auctionTitle) || $auctionTitle === false ){
-					$errors[] = 'auctionTitle incorrect.';
+				//auction_title
+				if( is_null($auction_title) || $auction_title === false ){
+					$errors[] = 'auction_title incorrect.';
 				} else {
-					$formData['auctionTitle'] = trim($auctionTitle);
+					$formData['auction_title'] = trim($auction_title);
 				}
 
-				//auctionDate
-				if( is_null($auctionDate) || $auctionDate === false ){
-					$errors[] = 'auctionDate incorrect.';
+				//auction_date
+				if( is_null($auction_date) || $auction_date === false ){
+					$errors[] = 'auction_date incorrect.';
 				} else {
-					$formData['auctionDate'] = trim($auctionDate);
+					$formData['auction_date'] = trim($auction_date);
 				}
 
 				//title
-				if( is_null($title) || $title === false ){
-					$errors[] = 'title incorrect.';
+				if( is_null($lot_title) || $lot_title === false ){
+					$errors[] = 'titre incorrect.';
 				} else {
-					$formData['title'] = trim($title);
+					$formData['lot_title'] = trim($lot_title);
 				}
 
 				//criteria
-				if( is_null($criteria) || $criteria === false ){
+				if( is_null($lot_criteria) || $lot_criteria === false ){
 					$errors[] = 'criteria incorrect.';
 				} else {
-					$formData['criteria'] = trim($criteria);
+					$formData['lot_criteria'] = trim($lot_criteria);
 				}
 
 				//estimates
-				if( is_null($estimates) || $estimates === false ){
+				if( is_null($lot_estimates) || $lot_estimates === false ){
 					$errors[] = 'estimates incorrect.';
 				} else {
-					$formData['estimates'] = trim($estimates);
+					$formData['lot_estimates'] = trim($lot_estimates);
 				}
 
 				//price
-				if( is_null($price) || $price === false ){
+				if( is_null($lot_price) || $lot_price === false ){
 					$errors[] = 'prix incorrect.';
 				} else {
-					$formData['price'] = trim($price);
+					$formData['price'] = trim($lot_price);
 				}
 
 				//currency
-				if( is_null($currency) || $currency === false ){
+				if( is_null($lot_currency) || $lot_currency === false ){
 					$errors[] = 'currency incorrect.';
 				} else {
-					$formData['currency'] = trim($currency);
+					$formData['currency'] = trim($lot_currency);
 				}
 
 				//thumbnail
-				if( is_null($thumbnail) || $thumbnail === false ){
+				if( is_null($img_thumbnail) || $img_thumbnail === false ){
 					$errors[] = 'thumbnail image incorrecte.';
 				} else {
-					$thumbnail = filter_var(base64_decode($thumbnail), FILTER_SANITIZE_URL);
-					if( $thumbnail === false ){
+					$img_thumbnail = filter_var(base64_decode($img_thumbnail), FILTER_SANITIZE_URL);
+					if( $img_thumbnail === false ){
 						throw new Exception('thumbnail incorrecte.');
 					}
 
-					$formData['imageThumbnail'] = trim($thumbnail);
+					$formData['image_thumbnail'] = trim($img_thumbnail);
 				}
 
 				//medium
-				if( is_null($medium) || $medium === false ){
+				if( is_null($img_medium) || $img_medium === false ){
 					$errors[] = 'medium image incorrecte.';
 				} else {
-					$medium = filter_var(base64_decode($medium), FILTER_SANITIZE_URL);
-					if( $medium === false ){
+					$img_medium = filter_var(base64_decode($img_medium), FILTER_SANITIZE_URL);
+					if( $img_medium === false ){
 						throw new Exception('medium image incorrecte.');
 					}
 
-					$formData['imageMedium'] = trim($medium);
+					$formData['image_medium'] = trim($img_medium);
 				}
 
 				//full
-				if( is_null($full) || $full === false ){
+				if( is_null($img_full) || $img_full === false ){
 					$errors[] = 'full image incorrecte.';
 				} else {
-					$full = filter_var(base64_decode($full), FILTER_SANITIZE_URL);
-					if( $full === false ){
+					$img_full = filter_var(base64_decode($img_full), FILTER_SANITIZE_URL);
+					if( $img_full === false ){
 						throw new Exception('full image incorrecte.');
 					}
 
-					$formData['imageFull'] = trim($full);
+					$formData['image_full'] = trim($img_full);
 				}
 
 				//info
@@ -470,6 +573,82 @@ class candidate extends commun {
 					$formData['info'] = trim($info);
 				}
 
+				//product_identifier
+				if( is_null($product_identifier) || $product_identifier === false ){
+					$formData['product_identifier'] = null;
+				} else {
+					$formData['product_identifier'] = trim($product_identifier);
+				}
+
+				//validated_brand
+				if( is_null($hidden_validated_brand) || $hidden_validated_brand === false ){
+					$formData['validated_brand'] = null;
+				} else {
+					$formData['validated_brand'] = trim($hidden_validated_brand);
+				}
+
+				//validated_model
+				if( is_null($hidden_validated_model) || $hidden_validated_model === false ){
+					$formData['validated_model'] = null;
+				} else {
+					$formData['validated_model'] = trim($hidden_validated_model);
+				}
+
+				//validated_ref
+				if( is_null($validated_ref) || $validated_ref === false ){
+					$formData['validated_ref'] = null;
+				} else {
+					$formData['validated_ref'] = trim($validated_ref);
+				}
+
+				//validated_case
+				if( is_null($hidden_validated_case) || $hidden_validated_case === false ){
+					$formData['validated_case'] = null;
+				} else {
+					$formData['validated_case'] = trim($hidden_validated_case);
+				}
+
+				//validated_shape
+				if( is_null($hidden_validated_shape) || $hidden_validated_case === false ){
+					$formData['validated_shape'] = null;
+				} else {
+					$formData['validated_shape'] = trim($hidden_validated_case);
+				}
+
+				//validated_bracelet
+				if( is_null($hidden_validated_bracelet) || $hidden_validated_bracelet === false ){
+					$formData['validated_bracelet'] = null;
+				} else {
+					$formData['validated_bracelet'] = trim($hidden_validated_bracelet);
+				}
+
+				//validated_movement
+				if( is_null($hidden_validated_movement) || $hidden_validated_movement === false ){
+					$formData['validated_movement'] = null;
+				} else {
+					$formData['validated_movement'] = trim($hidden_validated_movement);
+				}
+
+				//validated_complication
+				if( is_null($hidden_validated_complication) || $hidden_validated_complication === false ){
+					$formData['validated_complication'] = null;
+				} else {
+					$formData['validated_complication'] = trim($hidden_validated_complication);
+				}
+
+				//validated_price
+				if( is_null($validated_price) || $validated_price === false ){
+					$formData['validated_price'] = null;
+				} else {
+					$formData['validated_price'] = trim($validated_price);
+				}
+
+				//validated_currency
+				if( is_null($validated_currency) || $validated_currency === false ){
+					$formData['validated_currency'] = null;
+				} else {
+					$formData['validated_currency'] = trim($validated_currency);
+				}
 			}
 		}
 		$formData['errors'] = $errors;

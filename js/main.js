@@ -7,7 +7,8 @@ var $body, $win, $doc, $formModal, $form, $confirmModal,
 	stop = false,
 	updating = 0,
 	items = {},
-	page, scrolling, noMoreWarn;
+	page, scrolling, noMoreWarn,
+	tags = {};
 
 /**
  * hashchange listener
@@ -88,6 +89,28 @@ var getList = function(){
 	}
 };
 
+var loadTags = function( field ){
+	//ask the list values to the server and create the <option>s with it
+	$.ajax({
+		url: 'ajax.php',
+		data: 'action=loadList&field='+ field,
+		dataType: 'json',
+		method: 'post',
+		timeout: 10000
+	})
+	.done(function(data, textStatus, jqXHR){
+		tags[ field ] = [];
+		$.each(data, function(i, v){
+			var value = decoder.html(v).val();
+			tags[ field ].push( value );
+		});
+	})
+	.fail(function(){
+		//inform user
+		$notify.notify({message: {text: 'Échec du chargement de la liste d\'auto-complétion'}, type: 'error'}).show();
+	});
+};
+
 /**
  * ajax load <datalist> and <select> content
  */
@@ -155,16 +178,9 @@ var checkField = function( event ){
  */
 var formErrors = function( data ){
 	'use strict';
-	$.each(data, function(index, error){
-		$('#'+ error[0])
-			//add error class
-			.closest('.control-group').addClass( error[2] == 'required' ? 'warning' : error[2] )
-			.find('.controls')
-				//remove previous error message if present
-				.find('.help-block').remove().end()
-				//add error message
-				.append( $help.clone().text(error[1]) );
-	});
+	if( data ){
+		$notify.notify({message: {html: data.join('<br>')}, type: 'error'}).show();
+	}
 };
 
 /**
@@ -205,6 +221,7 @@ var progress = function( msg, cssClass ){
 			maxLotPerPage: 30 // do not change
 		}
 	};
+
 	var completedPage = false,
 		isLastPage;
 	/**
@@ -455,16 +472,16 @@ var progress = function( msg, cssClass ){
 			if( i >= size ){
 				auction = null;
 				//check if the storage auction url is in the list
-				if( last[ activeTab ].auctionId !== '' ){
+				if( last[ activeTab ].auction_id !== '' ){
 					for( var k = 0; k < auctions.length; k += 1 ){
-						if( auctions[ k ].auctionId == last[ activeTab ].auctionId){
+						if( auctions[ k ].auction_id == last[ activeTab ].auction_id){
 							auction = auctions[ k ];
 							break;
 						}
 					}
 
 					if( auction ){
-						progress('Dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+						progress('Dernière auction traitée trouvée, #'+ auction.auction_id +', passage à la suivante');
 						i = k + 1;
 
 						if( i >= auctions.length ){
@@ -496,15 +513,15 @@ var progress = function( msg, cssClass ){
 			auction = {};
 
 			auction.source = activeTab;
-			auction.auctionTitle = $.trim( $auction.find('.titlelistauctions').text().replace(/’/, '\'') );
+			auction.auction_title = $.trim( $auction.find('.titlelistauctions').text().replace(/’/, '\'') );
 
-			auction.auctionId = $auction.find('a').attr('href').replace(/javascript:opencatalog\('/, '').replace(/','0'\);?/, '');
+			auction.auction_id = $auction.find('a').attr('href').replace(/javascript:opencatalog\('/, '').replace(/','0'\);?/, '');
 
-			auction.sourceUrl = conf.lotListUrl.replace(/AID/, auction.auctionId);
+			auction.source_url = conf.lotListUrl.replace(/AID/, auction.auction_id);
 
 			auctions.push(auction);
 
-			progress('Auction trouvée, auction #'+ auction.auctionId);
+			progress('Auction trouvée, auction #'+ auction.auction_id);
 
 			return dfd.pipe( auctionsLoop(dfd) );
 		};
@@ -517,19 +534,19 @@ var progress = function( msg, cssClass ){
 			}
 
 			if( auctionParsed ){ // auction lots page parsed
-				progress('Traitement fini pour auction #'+ auction.auctionId, 'success');
+				progress('Traitement fini pour auction #'+ auction.auction_id, 'success');
 
 				if( i + 1 < auctions.length ){
 					completedPage = false; // only one auction per gathering for antiquorum, still more on page
 
-					last[ activeTab ].auctionId = auction.auctionId;
+					last[ activeTab ].auction_id = auction.auction_id;
 					last[ activeTab ].lotPage = 0;
 
 				} else {
 					var year = (new Date()).getFullYear();
 					if( last[ activeTab ].year != year ){
 						last[ activeTab ].year++;
-						last[ activeTab ].auctionId = '';
+						last[ activeTab ].auction_id = '';
 					}
 					last[ activeTab ].lotPage = 0;
 				}
@@ -556,7 +573,7 @@ var progress = function( msg, cssClass ){
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( auction.sourceUrl ),
+				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( auction.source_url ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -575,7 +592,7 @@ var progress = function( msg, cssClass ){
 				totalLots = $data.find('.searchcount').text().replace(/Lots found: /, '');
 				nbPages = Math.ceil( parseInt(totalLots, 10) / conf.maxLotPerPage );
 
-				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
+				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auction_id);
 				j = -1;
 				lots = [];
 				return dfd.pipe( lotsPagesLoop(dfd) );
@@ -608,7 +625,7 @@ var progress = function( msg, cssClass ){
 				}, 5000);
 
 			} else {
-				progress('Dernière page traitée pour auction #'+ auction.auctionId);
+				progress('Dernière page traitée pour auction #'+ auction.auction_id);
 				auctionParsed = true;
 				return dfd.pipe( byAuction(dfd) );
 			}
@@ -621,7 +638,7 @@ var progress = function( msg, cssClass ){
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( auction.sourceUrl ) +'&url='+ $.base64.encode( conf.baseUrl + nextUrl ),
+				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( auction.source_url ) +'&url='+ $.base64.encode( conf.baseUrl + nextUrl ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -641,14 +658,14 @@ var progress = function( msg, cssClass ){
 				return dfd.pipe( analyseLotsPage(dfd) );
 			})
 			.fail(function(){
-				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auctionId, 'error');
+				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auction_id, 'error');
 				return dfd.reject();
 			});
 		};
 
 		var analyseLotsPage = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Analyse des lots pour auction #'+ auction.auctionId);
+			progress('Analyse des lots pour auction #'+ auction.auction_id);
 
 			$lots.each(function(){
 				var $lot = $(this).closest('table').parent().closest('table');
@@ -658,57 +675,57 @@ var progress = function( msg, cssClass ){
 				var thumbUrl = $lot.find('.imagetd').find('img').attr('data-src');
 
 				if( thumbUrl ){
-					lot.thumbnail = $.base64.encode( thumbUrl );
-					lot.medium = $.base64.encode( thumbUrl.replace(/thumb/, 'medium') );
-					lot.full = $.base64.encode( thumbUrl.replace(/thumb/, 'full') );
+					lot.img_thumbnail = $.base64.encode( thumbUrl );
+					lot.img_medium = $.base64.encode( thumbUrl.replace(/thumb/, 'medium') );
+					lot.img_full = $.base64.encode( thumbUrl.replace(/thumb/, 'full') );
 				}
 
 				var href = $lot.find('.imagetd').find('a').attr('href');
-				lot.lotId = href.substring(href.indexOf('(') + 1, href.indexOf(','));
-				lot.url = conf.lotDetailUrl.replace(/LID/, lot.lotId).replace(/AID/, auction.auctionId);
-				lot.sourceUrl = $.base64.encode( lot.url );
+				lot.lot_id = href.substring(href.indexOf('(') + 1, href.indexOf(','));
+				lot.url = conf.lotDetailUrl.replace(/LID/, lot.lot_id).replace(/AID/, auction.auction_id);
+				lot.source_url = $.base64.encode( lot.url );
 
 				lot.id = 0;
-				lot.title = $.trim( $lot.find('.searchsubtitle').find('font').empty().end().html().replace(/<br ?\/?>/, ' ').replace(/’/, '\'') );
+				lot.lot_title = $.trim( $lot.find('.searchsubtitle').find('font').empty().end().html().replace(/<br ?\/?>/, ' ').replace(/’/, '\'') );
 
-				if( !auction.hasOwnProperty('auctionDate') ){
+				if( !auction.hasOwnProperty('auction_date') ){
 					var title = $.trim( $lot.find('.bidauctiontitle').html() );
 					var tmp = title.replace(/<br ?\/?>/, '|').split('|');
 
 					var date = new Date( Date.parse( tmp[1] ) );
-					auction.auctionDate = date.getFullYear() +'-'+ (date.getMonth() + 1 < 10 ? '0' : '') + (date.getMonth() + 1) +'-'+ (date.getDate() < 10 ? '0' : '') + date.getDate();
+					auction.auction_date = date.getFullYear() +'-'+ (date.getMonth() + 1 < 10 ? '0' : '') + (date.getMonth() + 1) +'-'+ (date.getDate() < 10 ? '0' : '') + date.getDate();
 				}
 
-				lot.auctionId = auction.auctionId;
+				lot.auction_id = auction.auction_id;
 				lot.source = activeTab;
-				lot.auctionTitle = auction.auctionTitle;
-				lot.auctionDate = auction.auctionDate;
+				lot.auction_title = auction.auction_title;
+				lot.auction_date = auction.auction_date;
 
 				var price = $.trim( $lot.find('.bidonlinestart').text() );
 				if( price && price.length > 0 ){
 					price = $.trim( price.substring( price.indexOf(':') + 1 ) ).split(' ');
-					lot.price = price[0].replace(/,/, '');
-					lot.currency = price[1];
+					lot.lot_price = price[0].replace(/,/, '');
+					lot.lot_currency = price[1];
 				} else {
-					lot.price = 'N/A';
-					lot.currency = 'N/A';
+					lot.lot_price = 'N/A';
+					lot.lot_currency = 'N/A';
 				}
 
 				var estimates = $.trim( $lot.find('.searchfooter').first().find('.searchfooterlight').empty().end().text() );
 				if( estimates && estimates.length > 0 ){
-					lot.estimates = $.trim( estimates.replace(/Estimate:/, '') );
+					lot.lot_estimates = $.trim( estimates.replace(/Estimate:/, '') );
 				} else {
-					lot.estimates = 'N/A';
+					lot.lot_estimates = 'N/A';
 				}
 
 				var criteria = $.trim( $lot.find('.searchpayload').text() );
 				if( criteria && criteria.length > 0 ){
-					lot.criteria = criteria.replace(/’/, '\'');
+					lot.lot_criteria = criteria.replace(/’/, '\'');
 				} else {
-					lot.criteria = 'N/A';
+					lot.lot_criteria = 'N/A';
 				}
 
-				lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ lot.price +' '+ lot.currency;
+				lot.info = lot.lot_title +' #||# '+ lot.lot_criteria +' #||# '+ lot.lot_estimates +' #||# '+ lot.lot_price +' '+ lot.lot_currency;
 
 				lots.push( lot );
 			});
@@ -730,7 +747,7 @@ var progress = function( msg, cssClass ){
 			}
 
 			if( k === 0 ){
-				progress('Sauvegarde des lots pour auction #'+ auction.auctionId);
+				progress('Sauvegarde des lots pour auction #'+ auction.auction_id);
 			}
 
 			lot = lots[ k ];
@@ -740,7 +757,7 @@ var progress = function( msg, cssClass ){
 
 		var addLot = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Sauvegarde du lot #'+ lot.lotId +' en attente de validation');
+			progress('Sauvegarde du lot #'+ lot.lot_id +' en attente de validation');
 			$.ajax({
 				url: 'ajax.php',
 				data: 'action=add&'+ $.param(lot),
@@ -813,16 +830,16 @@ var progress = function( msg, cssClass ){
 			if( i >= size ){
 				auction = null;
 				//check if the storage auction url is in the list
-				if( last[ activeTab ].auctionId !== '' ){
+				if( last[ activeTab ].auction_id !== '' ){
 					for( var k = 0; k < auctions.length; k += 1 ){
-						if( auctions[ k ].auctionId == last[ activeTab ].auctionId){
+						if( auctions[ k ].auction_id == last[ activeTab ].auction_id){
 							auction = auctions[ k ];
 							break;
 						}
 					}
 
 					if( auction ){
-						progress('auction en cours de traitement trouvée, #'+ auction.auctionId);
+						progress('auction en cours de traitement trouvée, #'+ auction.auction_id);
 						i = k;
 						return dfd.pipe( getAuctionDetail(dfd) );
 					}
@@ -856,17 +873,17 @@ var progress = function( msg, cssClass ){
 			auction = {};
 
 			auction.source = activeTab;
-			auction.auctionTitle = $.trim( $auction.find('.auctionNameTitle').text() );
-			auction.auctionDate = date;
-			auction.auctionId = $.trim( $auction.find('.auctionNameDescription').find('a').eq(0).text() );
+			auction.auction_title = $.trim( $auction.find('.auctionNameTitle').text() );
+			auction.auction_date = date;
+			auction.auction_id = $.trim( $auction.find('.auctionNameDescription').find('a').eq(0).text() );
 
 			maxDate = (maxDate < ts ? ts : maxDate);
 
-			auction.sourceUrl = $auction.find('.violetButton').attr('href');
+			auction.source_url = $auction.find('.violetButton').attr('href');
 
 			auctions.push(auction);
 
-			progress('Auction trouvée, auction #'+ auction.auctionId);
+			progress('Auction trouvée, auction #'+ auction.auction_id);
 
 			return dfd.pipe( auctionsLoop(dfd) );
 		};
@@ -879,12 +896,12 @@ var progress = function( msg, cssClass ){
 			}
 
 			if( auctionParsed ){ // auction lots page parsed
-				progress('Traitement fini pour auction #'+ auction.auctionId +' page '+ (parseInt(last[ activeTab ].lotPage, 10) + 1), 'success');
+				progress('Traitement fini pour auction #'+ auction.auction_id +' page '+ (parseInt(last[ activeTab ].lotPage, 10) + 1), 'success');
 
 				if( i + 1 < auctions.length ){
 					completedPage = false; // only one auction per gathering for sothebys, still more on page
 
-					last[ activeTab ].auctionId = auction.auctionId;
+					last[ activeTab ].auction_id = auction.auction_id;
 
 					if( lotsListUrls[ last[ activeTab ].lotPage ] === undefined ){
 						last[ activeTab ].lotPage = 0;
@@ -892,7 +909,7 @@ var progress = function( msg, cssClass ){
 
 				} else {
 					last[ activeTab ].page = parseInt(last[ activeTab ].page, 10) + 1;
-					last[ activeTab ].auctionId = '';
+					last[ activeTab ].auction_id = '';
 					last[ activeTab ].lotPage = 0;
 				}
 
@@ -918,7 +935,7 @@ var progress = function( msg, cssClass ){
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( conf.baseUrl + auction.sourceUrl ),
+				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( conf.baseUrl + auction.source_url ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -935,7 +952,7 @@ var progress = function( msg, cssClass ){
 				totalLots = $data.find('#filterTotal').text();
 				nbPages = lotsListUrls.length;
 
-				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
+				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auction_id);
 				j = -1;
 				lots = [];
 				return dfd.pipe( lotsPagesLoop(dfd) );
@@ -974,7 +991,7 @@ var progress = function( msg, cssClass ){
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.sourceUrl ) +'&url='+ $.base64.encode( conf.baseUrl + lotsListUrls[ j ] ),
+				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.source_url ) +'&url='+ $.base64.encode( conf.baseUrl + lotsListUrls[ j ] ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -990,34 +1007,34 @@ var progress = function( msg, cssClass ){
 				return dfd.pipe( analyseLotsPage(dfd) );
 			})
 			.fail(function(){
-				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auctionId, 'error');
+				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auction_id, 'error');
 				return dfd.reject();
 			});
 		};
 
 		var analyseLotsPage = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Analyse des lots pour auction #'+ auction.auctionId);
+			progress('Analyse des lots pour auction #'+ auction.auction_id);
 
 			$lots.find('.list-lot-item').each(function(){
 				var $lot = $(this);
 
 				lot = {};
 
-				lot.thumbnail = $.base64.encode( conf.baseUrl + $lot.find('.list-lot-item-col1').find('img').attr('data-src') );
+				lot.img_thumbnail = $.base64.encode( conf.baseUrl + $lot.find('.list-lot-item-col1').find('img').attr('data-src') );
 				lot.url = $lot.find('.list-lot-item-col1').attr('href');
-				lot.sourceUrl = $.base64.encode( lot.url );
+				lot.source_url = $.base64.encode( lot.url );
 
 				lot.id = 0;
-				lot.lotId = $.trim( $lot.find('.list-lot-item-col2').find('h4').text() );
-				lot.title = $.trim( $lot.find('.list-lot-item-col2').find('h2').text() );
+				lot.lot_id = $.trim( $lot.find('.list-lot-item-col2').find('h4').text() );
+				lot.lot_title = $.trim( $lot.find('.list-lot-item-col2').find('h2').text() );
 
 				var $estimate = $lot.find('.curr-convert').eq(0);
-				lot.estimates = $estimate.attr('data-from') +' - '+ $estimate.attr('data-to') +' '+ $estimate.attr('data-orig-currency');
+				lot.lot_estimates = $estimate.attr('data-from') +' - '+ $estimate.attr('data-to') +' '+ $estimate.attr('data-orig-currency');
 
 				var $price = $lot.find('.curr-convert').eq(1);
-				lot.price = $price.attr('data-price');
-				lot.currency = $price.attr('data-orig-currency');
+				lot.lot_price = $price.attr('data-price');
+				lot.lot_currency = $price.attr('data-orig-currency');
 
 				lots.push( lot );
 			});
@@ -1040,7 +1057,7 @@ var progress = function( msg, cssClass ){
 			}
 
 			if( j === 0 ){
-				progress('Récupération du détail des lots pour auction #'+ auction.auctionId);
+				progress('Récupération du détail des lots pour auction #'+ auction.auction_id);
 			}
 
 			lot = lots[ j ];
@@ -1050,12 +1067,12 @@ var progress = function( msg, cssClass ){
 
 		var byLot = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Lot '+ (j + 1) +' / '+ nbLots +' pour auction #'+ auction.auctionId +' lot #'+ lot.lotId);
+			progress('Lot '+ (j + 1) +' / '+ nbLots +' pour auction #'+ auction.auction_id +' lot #'+ lot.lot_id);
 
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotDetail&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.sourceUrl ) + '&url='+ $.base64.encode( conf.baseUrl + lot.url ),
+				data: 'action=proxyLotDetail&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.source_url ) + '&url='+ $.base64.encode( conf.baseUrl + lot.url ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -1067,15 +1084,15 @@ var progress = function( msg, cssClass ){
 				var $data = $('<div>'+ data +'</div>');
 
 				var imgUrl = $data.find('.lotMainImage').eq(0).find('img').attr('data-src');
-				lot.medium = $.base64.encode( conf.baseUrl + imgUrl );
-				lot.full = $.base64.encode( conf.baseUrl + imgUrl.substring(0, imgUrl.indexOf('.thumb')) );
-				lot.criteria = $.trim( $data.find('.lotBlock').find('div, ul').remove().end().text() );
+				lot.img_medium = $.base64.encode( conf.baseUrl + imgUrl );
+				lot.img_full = $.base64.encode( conf.baseUrl + imgUrl.substring(0, imgUrl.indexOf('.thumb')) );
+				lot.lot_criteria = $.trim( $data.find('.lotBlock').find('div, ul').remove().end().text() );
 
-				lot.auctionId = auction.auctionId;
+				lot.auction_id = auction.auction_id;
 				lot.source = activeTab;
-				lot.auctionTitle = auction.auctionTitle;
-				lot.auctionDate = auction.auctionDate;
-				lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ lot.price +' '+ lot.currency;
+				lot.auction_title = auction.auction_title;
+				lot.auction_date = auction.auction_date;
+				lot.info = lot.lot_title +' #||# '+ lot.lot_criteria +' #||# '+ lot.lot_estimates +' #||# '+ lot.lot_price +' '+ lot.lot_currency;
 
 				return dfd.pipe( addLot(dfd) );
 			})
@@ -1173,9 +1190,9 @@ var progress = function( msg, cssClass ){
 						last[ activeTab ].page = 1;
 						last[ activeTab ].month = d.getMonth() + 1;
 						last[ activeTab ].year = d.getFullYear();
-						last[ activeTab ].auctionId = '';
+						last[ activeTab ].auction_id = '';
 					} else {
-						progress('Dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+						progress('Dernière auction traitée trouvée, #'+ auction.auction_id +', passage à la suivante');
 					}
 
 				} else {
@@ -1192,16 +1209,16 @@ var progress = function( msg, cssClass ){
 				i = -1;
 
 				//check if the storage auction url is in the list
-				if( last[ activeTab ].auctionId !== '' ){
+				if( last[ activeTab ].auction_id !== '' ){
 					for( var k = 0; k < auctions.length; k += 1 ){
-						if( auctions[ k ].auctionId == last[ activeTab ].auctionId ){
+						if( auctions[ k ].auction_id == last[ activeTab ].auction_id ){
 							auction = auctions[ k ];
 							break;
 						}
 					}
 
 					if( auction ){
-						progress('dernière auction traitée trouvée, #'+ auction.auctionId +', passage à la suivante');
+						progress('dernière auction traitée trouvée, #'+ auction.auction_id +', passage à la suivante');
 						i = k; //byAuction does an i++
 						if( i + 1 >= auctions.length ){
 							nextPage = true;
@@ -1220,7 +1237,7 @@ var progress = function( msg, cssClass ){
 									last[ activeTab ].page = 1;
 									last[ activeTab ].month = d.getMonth() + 1;
 									last[ activeTab ].year = d.getFullYear();
-									last[ activeTab ].auctionId = '';
+									last[ activeTab ].auction_id = '';
 								}
 
 							} else {
@@ -1258,15 +1275,15 @@ var progress = function( msg, cssClass ){
 			auction = {};
 
 			auction.source = activeTab;
-			auction.auctionTitle = $.trim( $auction.find('.auction-info').find('a.description').text() );
-			auction.auctionDate = date;
-			auction.sourceUrl = $.trim( $auction.find('.sale-number').attr('href') );
-			var tmp = auction.sourceUrl.split('='); // format /LotFinder/searchresults.aspx?intSaleID=24265
-			auction.auctionId = tmp.pop();
+			auction.auction_title = $.trim( $auction.find('.auction-info').find('a.description').text() );
+			auction.auction_date = date;
+			auction.source_url = $.trim( $auction.find('.sale-number').attr('href') );
+			var tmp = auction.source_url.split('='); // format /LotFinder/searchresults.aspx?intSaleID=24265
+			auction.auction_id = tmp.pop();
 
 			auctions.push(auction);
 
-			progress('Auction trouvée, auction #'+ auction.auctionId);
+			progress('Auction trouvée, auction #'+ auction.auction_id);
 
 			return dfd.pipe( auctionsLoop(dfd) );
 		};
@@ -1281,7 +1298,7 @@ var progress = function( msg, cssClass ){
 			var d, d2;
 
 			if( auctionParsed ){ // auction lots page parsed
-				progress('Traitement fini pour auction #'+ auction.auctionId, 'success');
+				progress('Traitement fini pour auction #'+ auction.auction_id, 'success');
 			}
 
 			i++;
@@ -1330,7 +1347,7 @@ var progress = function( msg, cssClass ){
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( (watchCategoryUrl === '' ? conf.lotListUrl + auction.auctionId : watchCategoryUrl) ),
+				data: 'action=proxyLotsList&target='+ activeTab + '&url='+ $.base64.encode( (watchCategoryUrl === '' ? conf.lotListUrl + auction.auction_id : watchCategoryUrl) ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -1368,7 +1385,7 @@ var progress = function( msg, cssClass ){
 				totalLots = totalLots[ totalLots.length - 1 ];
 				nbPages = lotsListUrls.length;
 
-				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auctionId);
+				progress(totalLots +' lot(s) trouvé(s) réparti(s) sur '+ nbPages +' page(s) pour auction #'+ auction.auction_id);
 				j = -1;
 				lots = [];
 				return dfd.pipe( lotsPagesLoop(dfd) );
@@ -1404,7 +1421,7 @@ var progress = function( msg, cssClass ){
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.sourceUrl ) +'&url='+ $.base64.encode( conf.baseUrl + lotsListUrls[ j ] ),
+				data: 'action=proxyLotsList&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.source_url ) +'&url='+ $.base64.encode( conf.baseUrl + lotsListUrls[ j ] ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -1420,14 +1437,14 @@ var progress = function( msg, cssClass ){
 				return dfd.pipe( analyseLotsPage(dfd) );
 			})
 			.fail(function(){
-				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auctionId, 'error');
+				progress('Échec du chargement de la page'+ (j + 1) +' pour auction #'+ auction.auction_id, 'error');
 				return dfd.reject();
 			});
 		};
 
 		var analyseLotsPage = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Analyse des lots pour auction #'+ auction.auctionId);
+			progress('Analyse des lots pour auction #'+ auction.auction_id);
 
 			lots = [];
 			$lots.each(function(){
@@ -1435,17 +1452,17 @@ var progress = function( msg, cssClass ){
 
 				lot = {};
 
-				lot.thumbnail = $.base64.encode( $lot.find('.chr-result-img').find('img').attr('data-src') );
+				lot.img_thumbnail = $.base64.encode( $lot.find('.chr-result-img').find('img').attr('data-src') );
 				lot.url = $lot.find('.chr-result-hd-link').attr('href');
-				lot.sourceUrl = $.base64.encode( lot.url );
+				lot.source_url = $.base64.encode( lot.url );
 
 				lot.id = 0;
-				lot.lotId = $.trim( $lot.find('.chr-sale-lot-link').text() ).replace(/Lot /, '');
-				lot.title = $.trim( $lot.find('.chr-result-hd-link').text() );
+				lot.lot_id = $.trim( $lot.find('.chr-sale-lot-link').text() ).replace(/Lot /, '');
+				lot.lot_title = $.trim( $lot.find('.chr-result-hd-link').text() );
 
 				var $price = $lot.find('.chr-result-lot-price').filter(':not(.chr-lot-price-realized)').find('strong');
-				lot.price = $price.text().match(/[0-9]+/g).join('');
-				lot.currency = $price.text().match(/[^0-9,'\.]+/g).join('');
+				lot.lot_price = $price.text().match(/[0-9]+/g).join('');
+				lot.lot_currency = $price.text().match(/[^0-9,'\.]+/g).join('');
 
 				lots.push( lot );
 			});
@@ -1467,7 +1484,7 @@ var progress = function( msg, cssClass ){
 			}
 
 			if( k === 0 ){
-				progress('Récupération du détail des lots pour auction #'+ auction.auctionId);
+				progress('Récupération du détail des lots pour auction #'+ auction.auction_id);
 			}
 
 			lot = lots[ k ];
@@ -1477,12 +1494,12 @@ var progress = function( msg, cssClass ){
 
 		var byLot = function( dfd ){
 			if( stop ) return dfd.reject();
-			progress('Lot '+ (k + 1) +' / '+ nbLots +' pour auction #'+ auction.auctionId +' lot #'+ lot.lotId);
+			progress('Lot '+ (k + 1) +' / '+ nbLots +' pour auction #'+ auction.auction_id +' lot #'+ lot.lot_id);
 
 			//gather lot informations
 			$.ajax({
 				url: 'ajax.php',
-				data: 'action=proxyLotDetail&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.sourceUrl ) + '&url='+ $.base64.encode( lot.url ),
+				data: 'action=proxyLotDetail&target='+ activeTab +'&referer='+ $.base64.encode( conf.baseUrl + auction.source_url ) + '&url='+ $.base64.encode( lot.url ),
 				dataType: 'text',
 				type: 'POST',
 				timeout: 2 * 60 * 1000,
@@ -1493,20 +1510,20 @@ var progress = function( msg, cssClass ){
 
 				var $data = $(data).filter('.details-content');
 
-				lot.medium = $.base64.encode( $data.find('#main-link').find('img').attr('data-src') );
+				lot.img_medium = $.base64.encode( $data.find('#main-link').find('img').attr('data-src') );
 				var fullUrl = $data.find('#main-link').attr('href');
-				if( fullUrl ) lot.full = $.base64.encode( fullUrl.substring(fullUrl.indexOf('http:'), fullUrl.indexOf('\')')) );
-				else lot.full = null;
+				if( fullUrl ) lot.img_full = $.base64.encode( fullUrl.substring(fullUrl.indexOf('http:'), fullUrl.indexOf('\')')) );
+				else lot.img_full = null;
 
-				lot.estimates = $.trim( $data.find('.estimate-wrapper').find('.estimate-info-items').find('.currency-info-item').eq(0).text() );
+				lot.lot_estimates = $.trim( $data.find('.estimate-wrapper').find('.estimate-info-items').find('.currency-info-item').eq(0).text() );
 
-				lot.criteria = $.trim( $data.find('#tabWindow1').find('.overview').text() );
+				lot.lot_criteria = $.trim( $data.find('#tabWindow1').find('.overview').text() );
 
-				lot.auctionId = auction.auctionId;
+				lot.auction_id = auction.auction_id;
 				lot.source = activeTab;
-				lot.auctionTitle = auction.auctionTitle;
-				lot.auctionDate = auction.auctionDate;
-				lot.info = lot.title +' #||# '+ lot.criteria +' #||# '+ lot.estimates +' #||# '+ lot.price +' '+ lot.currency;
+				lot.auction_title = auction.auction_title;
+				lot.auction_date = auction.auction_date;
+				lot.info = lot.lot_title +' #||# '+ lot.lot_criteria +' #||# '+ lot.lot_estimates +' #||# '+ lot.lot_price +' '+ lot.lot_currency;
 
 				return dfd.pipe( addLot(dfd) );
 			})
@@ -1617,26 +1634,32 @@ var progress = function( msg, cssClass ){
 
 	/** _____________________________________________ EDIT FORM **/
 		//quick links for title in form
-		var $quickLink = $('<a class="btn btn-info quicklink" target="_blank"><i class="icon-link"></i></a>');
-		$('.edit-form')
+		$form
 			.on('submit', function(e){
 				e.preventDefault();
-				var $this = $(this);
 
 				//multiple call protection
-				if( $this.data('save_clicked') !== 1 ){
-					$this.data('save_clicked', 1);
+				if( $form.data('save_clicked') !== 1 ){
+					$form.data('save_clicked', 1);
+
+					var item = items[ $form.find('#lot_id').val() ];
+
+					$form.find('input').each(function(){
+						if( this.name ){
+							item[ this.name ] = this.value;
+						}
+					});
 
 					$.ajax({
 						url: 'ajax.php',
-						data: $this.serialize(),
-						type: 'POST',
+						data: $.param( item ),
+						method: 'POST',
 						dataType: 'json'
 					})
 					.always(function(){
-						$this.data('save_clicked', 0);
+						$form.data('save_clicked', 0);
 					})
-					.done(function(data){
+					.done(function( data ){
 						if( data == 'ok' ){
 							//modal close
 							$formModal.modal('hide');
@@ -1649,26 +1672,34 @@ var progress = function( msg, cssClass ){
 
 						} else {
 							//form errors display
-							formErrors();
+							formErrors( data );
 						}
 					});
 				}
 			})
-			.on('change', '.title', function(){
-				var $this = $(this);
+			.on('change', 'input[name="hidden_validated_brand"], input[name="hidden_validated_model"], #validated_ref', function(){
+				var brand = $form.find('input[name="hidden_validated_brand"]').val().replace(/ /g, '-').replace(/,/g, '_'),
+					model = $form.find('input[name="hidden_validated_model"]').val().replace(/ /g, '-').replace(/,/g, '_'),
+					ref = $form.find('#validated_ref').val().replace(/ /g, '-'),
+					identifier = '';
 
-				if( $this.val() === '' ){
-					$this.parent().removeClass('input-append')
-						.find('.quicklink').remove();
+				if( brand ){
+					identifier = brand;
+				}
+				if( model && identifier ){
+					identifier += '|';
+				}
+				if( model ){
+					identifier += model ;
+				}
+				if( ref && identifier ){
+					identifier += '|';
+				}
+				if( ref ){
+					identifier += ref;
 				}
 
-				if( $this.siblings('.quicklink').length === 0 ){
-					$this.parent().addClass('input-append');
-					$quickLink.clone()
-						.attr('title', 'Rechercher dans Google Image')
-						.attr('href', 'http://www.google.com/images?q=' + $this.val() + ' watch')
-						.appendTo( $this.parent() );
-				}
+				$form.find('#product_identifier').val( identifier );
 			})
 			.each(function(){
 				//add event listener for dynamic form validation
@@ -1676,6 +1707,14 @@ var progress = function( msg, cssClass ){
 				this.addEventListener("blur", checkField, true);
 				this.addEventListener("input", checkField, true);
 			});
+
+		$body.on('click', '.add_to_chronocote', function( e ){
+			e.preventDefault();
+
+			$form.find('#action').val('send');
+
+			$form.trigger('submit');
+		});
 
 	/** _____________________________________________ EDIT ACTION **/
 		$body.on('click', '.edit', function(e){
@@ -1688,18 +1727,78 @@ var progress = function( msg, cssClass ){
 			//reseting form
 			$form
 				.data('save_clicked', 0)
+				.find('#action').val('update').end()
 				.find('.wrapper').html( tmpl('form_tmpl', data) );
 
 			window.setTimeout(function(){
 				//remove validation classes and focus the first field
 				$form
-					.find('.tagManager').each(function(){ $(this).tagsManager(); }).end()
+					.find('.tm-input').each(function(){
+						$(this)
+							.tagsManager({
+								CapitalizeFirstLetter: false,
+								preventSubmitOnEnter: true,
+								typeahead: true,
+								typeaheadAjaxMethod: "GET",
+								typeaheadAjaxSource: null,
+								typeaheadSource: tags[ this.name ],
+								typeaheadAjaxPolling: false,
+								delimiters: [13, 44],
+								backspace: [8],
+								deleteTagsOnBackspace: true,
+								hiddenTagListName: 'hidden_'+ this.name
+							})
+							.blur(function(e){
+								if( this.value !== '' ){
+									$(this).tagsManager('pushTag', this.value);
+								}
+							});
+
+					}).end()
 					.find('select').blur().end()
 					.find('input').filter('[type="text"]').first().focus();
 			}, 300);
 		});
 
+		$form
+			.data('save_clicked', 0)
+			.find('.wrapper').html( tmpl('form_tmpl', {item: {
+				id: null,
+				auction_id: null,
+				lot_id: null,
+				source: null,
+				source_url: null,
+				auction_title: null,
+				auction_date: null,
+				auction_timestamp: null,
+				lot_title: null,
+				lot_criteria: null,
+				lot_estimates: null,
+				lot_price: null,
+				lot_currency: null,
+				info: null,
+				"status": null,
+				img_thumbnail: null,
+				img_medium: null,
+				img_full: null,
+				modified_date: null,
+				product_identifier: null,
+				validated_brand: null,
+				validated_model: null,
+				validated_ref: null,
+				validated_case: null,
+				validated_shape: null,
+				validated_bracelet: null,
+				validated_movement: null,
+				validated_complication: null,
+				validated_price: null,
+				validated_currency: null
+			}}) );
+
 		$form.find('datalist, select').loadList();
+
+		$form.find('.tm-input').each(function(){ loadTags( this.name ); });
+
 
 	/** _____________________________________________ DELETE ACTION **/
 		$body.on('click', '.delete', function(e){
