@@ -233,8 +233,6 @@ class candidate extends commun {
 
 			$delCandidate->execute( array( ':id' => $id ) );
 
-			$this->_cleanImage($data['id']);
-
 		} catch( Exception $e ){
 			erreur_pdo($e, get_class( $this ), __FUNCTION__);
 		}
