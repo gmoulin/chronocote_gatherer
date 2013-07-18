@@ -177,7 +177,7 @@ class candidate extends commun {
 		try {
 			$updateStatus = $this->db->prepare("
 				UPDATE candidate
-				SET status = 'validated',
+				SET status = :status,
 					modified_date = NOW()
 				WHERE id = :id
 			");
@@ -371,7 +371,7 @@ class candidate extends commun {
 		$formData = array();
 		$errors = array();
 
-		if( $_POST['action'] == 'update' ){
+		if( $_POST['action'] == 'update' || $_POST['action'] == 'send' ){
 			$args = array(
 				'action'		=> FILTER_SANITIZE_STRING,
 				'id'			=> FILTER_SANITIZE_NUMBER_INT,
@@ -441,7 +441,7 @@ class candidate extends commun {
 			}
 
 			//id
-			if( $action == 'update' ){
+			if( $action == 'update' || $action == 'send' ){
 				if( is_null($id) || $id === false ){
 					$errors[] = 'Identifiant incorrect.';
 				} else {
@@ -458,7 +458,7 @@ class candidate extends commun {
 				}
 			}
 
-			if( $action == 'update' || $action == 'add' ){
+			if( $action == 'update' || $action == 'send' || $action == 'add' ){
 				//id_auction
 				if( is_null($auction_id) || $auction_id === false ){
 					$errors[] = 'Numéro d\'auction incorrect.';
