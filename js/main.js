@@ -1713,10 +1713,26 @@ var progress = function( msg, cssClass ){
 							$formModal.modal('hide');
 
 							//inform user
-							$notify.notify({message: {text: 'Enregistrement réussi'}, type: 'success'}).show();
+							$notify.notify({message: {text: 'Enregistrement réussi.'}, type: 'success'}).show();
 
-							//TODO update row
-							//getList();
+							if( $form.find('#action').val() == 'send' ){
+								$.ajax({
+									url: 'http://www.chronocote2.dev/index.php?option=com_watche&task=add',
+									data: $.param( item ),
+									method: 'POST',
+									timeout: 10000
+								})
+								.done(function( data ){
+									if( data == 'ok' ){
+										$notify.notify({message: {text: 'Ajout dans chronocote réussi.'}, type: 'success'}).show();
+									} else {
+										$notify.notify({message: {text: 'Ajout dans chronocote échoué ('+ data +').'}, type: 'success'}).show();
+									}
+								})
+								.fail(function(){
+									$notify.notify({message: {text: 'Ajout dans chronocote échoué.'}, type: 'error'}).show();
+								});
+							}
 
 						} else {
 							//form errors display
