@@ -75,7 +75,8 @@ try {
 
 				} else if( $target == 'sothebys' ){
 					//end date timestamp to javascript format (milliseconds)
-					$postData = 'invertLocations=false&eventTypes=/data/dictionaries/eventType/AUC&departments=/data/departments/watches&showPast=true&startDate=1167606000000&endDate='.(time() * 1000).'&_charset_=utf-8&tzOffset=-3600000&filterExtended=true&ajaxScrolling=false&ascing=asc&orderBy=date&part=true&delete=undefined&from='.($page - 1 * 10).'&to='.($page * 10);
+					//$postData = 'invertLocations=false&eventTypes=/data/dictionaries/eventType/AUC&departments=/data/departments/watches&showPast=true&startDate=1167606000000&endDate='.(time() * 1000).'&_charset_=utf-8&tzOffset=-3600000&filterExtended=true&ajaxScrolling=false&ascing=asc&orderBy=date&part=true&delete=undefined&from='.($page - 1 * 10).'&to='.($page * 10);
+					$postData = '_charset_=utf-8&tzOffset=14400000&startDate=1167606000000&endDate='.(time() * 1000).'&eventTypes=%2Fdata%2Fdictionaries%2FeventType%2FAUC&showPast=true&resultSections=departments%3Blocations%3Btopics&filterExtended=true&search=&ascing=desc&orderBy=date&lowPriceEstimateUSD=&highPriceEstimateUSD=&artists=&genres=&types=&mediums=&locations=&departments=%2Fdata%2Fdepartments%2Fwatches&topics=&currency=USD&part=true&from='.($page - 1 * 12).'&to='.($page * 12).'&isAuthenticated=false';
 
 				} else if ( $target == 'christies' ){
 					$postData = 'month='.$month.'&year='.$year.'&locations=&scids=9&initialpageload=false'.($page > 1 ? '&pg='.$page : '');
@@ -112,7 +113,9 @@ try {
 					curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17');
 					curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 					curl_setopt($ch, CURLOPT_REFERER, 'http://catalog.antiquorum.com/index.html');
-					curl_setopt($ch, CURLOPT_COOKIE, $sessionId.';language=en');
+					if( $_SESSION['cookie_PHPSESSID'] != '' ){
+						curl_setopt($ch, CURLOPT_COOKIE, $_SESSION['cookie_PHPSESSID'].';language=en');
+					}
 					$output = curl_exec($ch);
 					curl_close($ch);
 
@@ -135,7 +138,7 @@ try {
 
 					//need a POST to "initialize" the search
 					$ch = curl_init();
-					curl_setopt($ch, CURLOPT_URL, 'http://www.sothebys.com/en/auctions/results/_jcr_content.auctionsList.html');
+					curl_setopt($ch, CURLOPT_URL, 'http://www.sothebys.com/en/auctions/list/_jcr_content.eventsList.html');
 					curl_setopt($ch, CURLOPT_POST, 1);
 					curl_setopt($ch, CURLOPT_POSTFIELDS, $postData); // pagination is already in postData
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -196,7 +199,9 @@ try {
 				}
 
 				$referer = filter_has_var(INPUT_POST, 'referer');
-				$referer = filter_var(base64_decode($_POST['referer']), FILTER_SANITIZE_URL);
+				if( $referer !== false ){
+					$referer = filter_var(base64_decode($_POST['referer']), FILTER_SANITIZE_URL);
+				}
 
 				$output = '';
 				if( $target == 'antiquorum' ){
@@ -220,9 +225,23 @@ try {
 					header('Content-Type: text/html; charset=utf-8');
 
 				} elseif( $target == 'sothebys' ){
+					$currency = filter_has_var(INPUT_POST, 'currency');
+					if( is_null($currency) || $currency === false ){
+						throw new Exception('monnaie manquante.');
+					}
+
+					$currency = filter_var($_POST['currency'], FILTER_SANITIZE_STRING);
+					if( $currency === false ){
+						throw new Exception('monnaie incorrecte.');
+					}
+
+					//$postData = 'charset_=utf-8&ascing=asc&currency='.$currency.'&from=0&to=12';
+					$postData = '_charset_=utf-8&artists=&ascing=asc&currency=USD&departments=&endDate=&eventTypes=/data/dictionaries/eventType/AUC;/data/dictionaries/eventType/EXH&filterExtended=true&from=0&genres=&highPriceEstimateUSD=999999999.0&isAuthenticated=false&locations=&lots=&lowPriceEstimateUSD=0.0&mediums=&orderBy=lotSortNum&part=true&resultSections=departments;locations;topics&showPast=false&startDate=&to=999&topics=&types=&tzOffset=14400000';
+
 					$ch = curl_init();
 					curl_setopt($ch, CURLOPT_URL, $url);
-					curl_setopt($ch, CURLOPT_POST, 0);
+					curl_setopt($ch, CURLOPT_POST, 1);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, $postData); // pagination is already in postData
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 					curl_setopt($ch, CURLOPT_HEADER, false);
 					curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);

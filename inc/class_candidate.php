@@ -373,38 +373,61 @@ class candidate extends commun {
 		$formData = array();
 		$errors = array();
 
-		$args = array(
-			'action'		=> FILTER_SANITIZE_STRING,
-			'id'			=> FILTER_SANITIZE_NUMBER_INT,
-			//gathered fields
-			'auction_id'		=> FILTER_SANITIZE_STRING,
-			'lot_id'			=> FILTER_SANITIZE_STRING,
-			'source'		=> FILTER_SANITIZE_STRING,
-			'source_url'		=> FILTER_SANITIZE_STRING,
-			'auction_title'	=> FILTER_SANITIZE_STRING,
-			'auction_date'	=> FILTER_SANITIZE_STRING,
-			'lot_title'			=> FILTER_SANITIZE_STRING,
-			'lot_criteria'		=> FILTER_SANITIZE_STRING,
-			'lot_estimates'		=> FILTER_SANITIZE_STRING,
-			'lot_price'			=> FILTER_SANITIZE_STRING,
-			'lot_currency'		=> FILTER_SANITIZE_STRING,
-			'img_thumbnail'		=> FILTER_SANITIZE_STRING,
-			'img_medium'		=> FILTER_SANITIZE_STRING,
-			'img_full'			=> FILTER_SANITIZE_STRING,
-			'info'			=> FILTER_SANITIZE_STRING,
-			//user validated fields
-			'product_identifier'			=> FILTER_SANITIZE_STRING,
-			'hidden_validated_brand'		=> FILTER_SANITIZE_STRING,
-			'hidden_validated_model'		=> FILTER_SANITIZE_STRING,
-			'validated_ref'					=> FILTER_SANITIZE_STRING,
-			'hidden_validated_case'			=> FILTER_SANITIZE_STRING,
-			'hidden_validated_shape'		=> FILTER_SANITIZE_STRING,
-			'hidden_validated_bracelet'		=> FILTER_SANITIZE_STRING,
-			'hidden_validated_movement'		=> FILTER_SANITIZE_STRING,
-			'hidden_validated_complication'	=> FILTER_SANITIZE_STRING,
-			'validated_price'				=> FILTER_SANITIZE_STRING,
-			'validated_currency'			=> FILTER_SANITIZE_STRING,
-		);
+		if( $_POST['action'] == 'update' ){
+			$args = array(
+				'action'		=> FILTER_SANITIZE_STRING,
+				'id'			=> FILTER_SANITIZE_NUMBER_INT,
+				//gathered fields
+				'auction_id'		=> FILTER_SANITIZE_STRING,
+				'lot_id'			=> FILTER_SANITIZE_STRING,
+				'source'		=> FILTER_SANITIZE_STRING,
+				'source_url'		=> FILTER_SANITIZE_STRING,
+				'auction_title'	=> FILTER_SANITIZE_STRING,
+				'auction_date'	=> FILTER_SANITIZE_STRING,
+				'lot_title'			=> FILTER_SANITIZE_STRING,
+				'lot_criteria'		=> FILTER_SANITIZE_STRING,
+				'lot_estimates'		=> FILTER_SANITIZE_STRING,
+				'lot_price'			=> FILTER_SANITIZE_STRING,
+				'lot_currency'		=> FILTER_SANITIZE_STRING,
+				'img_thumbnail'		=> FILTER_SANITIZE_STRING,
+				'img_medium'		=> FILTER_SANITIZE_STRING,
+				'img_full'			=> FILTER_SANITIZE_STRING,
+				'info'			=> FILTER_SANITIZE_STRING,
+				//user validated fields
+				'product_identifier'			=> FILTER_SANITIZE_STRING,
+				'hidden_validated_brand'		=> FILTER_SANITIZE_STRING,
+				'hidden_validated_model'		=> FILTER_SANITIZE_STRING,
+				'validated_ref'					=> FILTER_SANITIZE_STRING,
+				'hidden_validated_case'			=> FILTER_SANITIZE_STRING,
+				'hidden_validated_shape'		=> FILTER_SANITIZE_STRING,
+				'hidden_validated_bracelet'		=> FILTER_SANITIZE_STRING,
+				'hidden_validated_movement'		=> FILTER_SANITIZE_STRING,
+				'hidden_validated_complication'	=> FILTER_SANITIZE_STRING,
+				'validated_price'				=> FILTER_SANITIZE_STRING,
+				'validated_currency'			=> FILTER_SANITIZE_STRING,
+			);
+		} else {
+			$args = array(
+				'action'		=> FILTER_SANITIZE_STRING,
+				'id'			=> FILTER_SANITIZE_NUMBER_INT,
+				//gathered fields
+				'auction_id'		=> FILTER_SANITIZE_STRING,
+				'lot_id'			=> FILTER_SANITIZE_STRING,
+				'source'		=> FILTER_SANITIZE_STRING,
+				'source_url'		=> FILTER_SANITIZE_STRING,
+				'auction_title'	=> FILTER_SANITIZE_STRING,
+				'auction_date'	=> FILTER_SANITIZE_STRING,
+				'lot_title'			=> FILTER_SANITIZE_STRING,
+				'lot_criteria'		=> FILTER_SANITIZE_STRING,
+				'lot_estimates'		=> FILTER_SANITIZE_STRING,
+				'lot_price'			=> FILTER_SANITIZE_STRING,
+				'lot_currency'		=> FILTER_SANITIZE_STRING,
+				'img_thumbnail'		=> FILTER_SANITIZE_STRING,
+				'img_medium'		=> FILTER_SANITIZE_STRING,
+				'img_full'			=> FILTER_SANITIZE_STRING,
+				'info'			=> FILTER_SANITIZE_STRING,
+			);
+		}
 
 		foreach( $args as $field => $validation ){
 			if( !isset($_POST[$field]) ){
@@ -572,85 +595,86 @@ class candidate extends commun {
 				} else {
 					$formData['info'] = trim($info);
 				}
+			}
 
-				//product_identifier
-				if( is_null($product_identifier) || $product_identifier === false ){
-					$formData['product_identifier'] = null;
-				} else {
-					$formData['product_identifier'] = trim($product_identifier);
-				}
+			//product_identifier
+			if( !isset($product_identifier) || is_null($product_identifier) || $product_identifier === false ){
+				$formData['product_identifier'] = null;
+			} else {
+				$formData['product_identifier'] = trim($product_identifier);
+			}
 
-				//validated_brand
-				if( is_null($hidden_validated_brand) || $hidden_validated_brand === false ){
-					$formData['validated_brand'] = null;
-				} else {
-					$formData['validated_brand'] = trim($hidden_validated_brand);
-				}
+			//validated_brand
+			if( !isset($hidden_validated_brand) || is_null($hidden_validated_brand) || $hidden_validated_brand === false ){
+				$formData['validated_brand'] = null;
+			} else {
+				$formData['validated_brand'] = trim($hidden_validated_brand);
+			}
 
-				//validated_model
-				if( is_null($hidden_validated_model) || $hidden_validated_model === false ){
-					$formData['validated_model'] = null;
-				} else {
-					$formData['validated_model'] = trim($hidden_validated_model);
-				}
+			//validated_model
+			if( !isset($hidden_validated_model) || is_null($hidden_validated_model) || $hidden_validated_model === false ){
+				$formData['validated_model'] = null;
+			} else {
+				$formData['validated_model'] = trim($hidden_validated_model);
+			}
 
-				//validated_ref
-				if( is_null($validated_ref) || $validated_ref === false ){
-					$formData['validated_ref'] = null;
-				} else {
-					$formData['validated_ref'] = trim($validated_ref);
-				}
+			//validated_ref
+			if( !isset($validated_ref) || is_null($validated_ref) || $validated_ref === false ){
+				$formData['validated_ref'] = null;
+			} else {
+				$formData['validated_ref'] = trim($validated_ref);
+			}
 
-				//validated_case
-				if( is_null($hidden_validated_case) || $hidden_validated_case === false ){
-					$formData['validated_case'] = null;
-				} else {
-					$formData['validated_case'] = trim($hidden_validated_case);
-				}
+			//validated_case
+			if( !isset($hidden_validated_case) || is_null($hidden_validated_case) || $hidden_validated_case === false ){
+				$formData['validated_case'] = null;
+			} else {
+				$formData['validated_case'] = trim($hidden_validated_case);
+			}
 
-				//validated_shape
-				if( is_null($hidden_validated_shape) || $hidden_validated_case === false ){
-					$formData['validated_shape'] = null;
-				} else {
-					$formData['validated_shape'] = trim($hidden_validated_case);
-				}
+			//validated_shape
+			if( !isset($hidden_validated_shape) || is_null($hidden_validated_shape) || $hidden_validated_case === false ){
+				$formData['validated_shape'] = null;
+			} else {
+				$formData['validated_shape'] = trim($hidden_validated_case);
+			}
 
-				//validated_bracelet
-				if( is_null($hidden_validated_bracelet) || $hidden_validated_bracelet === false ){
-					$formData['validated_bracelet'] = null;
-				} else {
-					$formData['validated_bracelet'] = trim($hidden_validated_bracelet);
-				}
+			//validated_bracelet
+			if( !isset($hidden_validated_bracelet) || is_null($hidden_validated_bracelet) || $hidden_validated_bracelet === false ){
+				$formData['validated_bracelet'] = null;
+			} else {
+				$formData['validated_bracelet'] = trim($hidden_validated_bracelet);
+			}
 
-				//validated_movement
-				if( is_null($hidden_validated_movement) || $hidden_validated_movement === false ){
-					$formData['validated_movement'] = null;
-				} else {
-					$formData['validated_movement'] = trim($hidden_validated_movement);
-				}
+			//validated_movement
+			if( !isset($hidden_validated_movement) || is_null($hidden_validated_movement) || $hidden_validated_movement === false ){
+				$formData['validated_movement'] = null;
+			} else {
+				$formData['validated_movement'] = trim($hidden_validated_movement);
+			}
 
-				//validated_complication
-				if( is_null($hidden_validated_complication) || $hidden_validated_complication === false ){
-					$formData['validated_complication'] = null;
-				} else {
-					$formData['validated_complication'] = trim($hidden_validated_complication);
-				}
+			//validated_complication
+			if( !isset($hidden_validated_complication) || is_null($hidden_validated_complication) || $hidden_validated_complication === false ){
+				$formData['validated_complication'] = null;
+			} else {
+				$formData['validated_complication'] = trim($hidden_validated_complication);
+			}
 
-				//validated_price
-				if( is_null($validated_price) || $validated_price === false ){
-					$formData['validated_price'] = null;
-				} else {
-					$formData['validated_price'] = trim($validated_price);
-				}
+			//validated_price
+			if( !isset($validated_price) || is_null($validated_price) || $validated_price === false ){
+				$formData['validated_price'] = null;
+			} else {
+				$formData['validated_price'] = trim($validated_price);
+			}
 
-				//validated_currency
-				if( is_null($validated_currency) || $validated_currency === false ){
-					$formData['validated_currency'] = null;
-				} else {
-					$formData['validated_currency'] = trim($validated_currency);
-				}
+			//validated_currency
+			if( !isset($validated_currency) || is_null($validated_currency) || $validated_currency === false ){
+				$formData['validated_currency'] = null;
+			} else {
+				$formData['validated_currency'] = trim($validated_currency);
 			}
 		}
+
 		$formData['errors'] = $errors;
 
 		return $formData;

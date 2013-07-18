@@ -26,19 +26,6 @@ include('html_header.php');
 </div>
 
 <div class="container-fluid">
-	<div class="row-fluid">
-		<ul class="next-auction">
-			<?php foreach( $parts as $part ){ ?>
-				<li class="span4">
-					<span class="label">
-						Prochaine vente <?php echo ucfirst($part); ?> :
-						<?php echo ($next_auction[$part] > 0 ? date('l d F Y', $next_auction[$part]) : ''); ?>
-					</span>
-				</li>
-			<?php } ?>
-		</ul>
-	</div>
-
 	<div class="row-fluid container-list">
 		<?php foreach( $parts as $part ){ ?>
 			<table id="list_<?php echo $part; ?>" class="list table table-hover table-striped">
