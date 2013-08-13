@@ -111,6 +111,18 @@
 				<input type="text" id="product_identifier" name="product_identifier" list="products" class="control input-large uneditable-input" value="<%=item.product_identifier%>" autocomplete="off" readonly>
 			</div>
 		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="validated_title">Titre</label>
+			<div class="controls span9">
+				<input type="text" id="validated_title" name="validated_title" class="control input-large" value="<%=item.auction_title%>" autocomplete="off">
+			</div>
+		</div>
+		<div class="control-group row-fluid">
+			<label class="control-label span3" for="validated_description">Description</label>
+			<div class="controls span9">
+				<textarea id="validated_description" name="validated_description" class="control input-large" autocomplete="off"><%=item.lot_title%></textarea>
+			</div>
+		</div>
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_brand">Marque</label>
 			<div class="controls span9">
@@ -177,13 +189,13 @@
 			<div class="controls span9">
 				<div class="row-fluid">
 					<label for="photo1" class="radio inline span3">
-						<input type="radio" id="photo1" name="photo" value="thumbnail">Thumbnail
+						<input type="radio" id="photo1" name="validated_image" value="thumbnail" <% if( item.validated_image == 'thumbnail'){ %>checked<% } %>>Thumbnail
 					</label>
 					<label for="photo2" class="radio inline span3 offset1">
-						<input type="radio" id="photo2" name="photo" value="medium">Medium
+						<input type="radio" id="photo2" name="validated_image" value="medium" <% if( item.validated_image == 'medium'){ %>checked<% } %>>Medium
 					</label>
 					<label for="photo3" class="radio inline span3 offset1">
-						<input type="radio" id="photo3" name="photo" value="full">High Res
+						<input type="radio" id="photo3" name="validated_image" value="full" <% if( item.validated_image == 'full'){ %>checked<% } %>>High Res
 					</label>
 				</div>
 			</div>

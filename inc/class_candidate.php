@@ -122,6 +122,8 @@ class candidate extends commun {
 					img_medium = :image_medium,
 					img_full = :image_full,
 					product_identifier = :product_identifier,
+					validated_title = :validated_title,
+					validated_description = :validated_description,
 					validated_brand = :validated_brand,
 					validated_model = :validated_model,
 					validated_ref = :validated_ref,
@@ -130,8 +132,10 @@ class candidate extends commun {
 					validated_bracelet = :validated_bracelet,
 					validated_movement = :validated_movement,
 					validated_complication = :validated_complication,
+					validated_estimation = :validated_estimation,
 					validated_price = :validated_price,
 					validated_currency = :validated_currency,
+					validated_image = :validated_image,
 					modified_date = NOW()
 				WHERE id = :id
 			");
@@ -150,6 +154,8 @@ class candidate extends commun {
 				':image_medium' => $data['image_medium'],
 				':image_full' => $data['image_full'],
 				':product_identifier' => $data['product_identifier'],
+				':validated_title' => $data['validated_title'],
+				':validated_description' => $data['validated_description'],
 				':validated_brand' => $data['validated_brand'],
 				':validated_model' => $data['validated_model'],
 				':validated_ref' => $data['validated_ref'],
@@ -158,8 +164,10 @@ class candidate extends commun {
 				':validated_bracelet' => $data['validated_bracelet'],
 				':validated_movement' => $data['validated_movement'],
 				':validated_complication' => $data['validated_complication'],
+				':validated_estimation' => $data['validated_estimation'],
 				':validated_price' => $data['validated_price'],
 				':validated_currency' => $data['validated_currency'],
+				':validated_image' => $data['validated_image'],
 			);
 
 			$updCandidate->execute( $params );
@@ -216,6 +224,8 @@ class candidate extends commun {
 					img_medium = NULL,
 					img_full = NULL,
 					product_identifier = NULL,
+					validated_title = NULL,
+					validated_description = NULL,
 					validated_brand = NULL,
 					validated_model = NULL,
 					validated_ref = NULL,
@@ -224,8 +234,10 @@ class candidate extends commun {
 					validated_bracelet = NULL,
 					validated_movement = NULL,
 					validated_complication = NULL,
+					validated_estimation = NULL,
 					validated_price = NULL,
 					validated_currency = NULL,
+					validated_image = NULL,
 					status = 'deleted',
 					modified_date = NOW()
 				WHERE id = :id
@@ -373,15 +385,15 @@ class candidate extends commun {
 
 		if( $_POST['action'] == 'update' || $_POST['action'] == 'send' ){
 			$args = array(
-				'action'		=> FILTER_SANITIZE_STRING,
-				'id'			=> FILTER_SANITIZE_NUMBER_INT,
+				'action'			=> FILTER_SANITIZE_STRING,
+				'id'				=> FILTER_SANITIZE_NUMBER_INT,
 				//gathered fields
 				'auction_id'		=> FILTER_SANITIZE_STRING,
 				'lot_id'			=> FILTER_SANITIZE_STRING,
-				'source'		=> FILTER_SANITIZE_STRING,
+				'source'			=> FILTER_SANITIZE_STRING,
 				'source_url'		=> FILTER_SANITIZE_STRING,
-				'auction_title'	=> FILTER_SANITIZE_STRING,
-				'auction_date'	=> FILTER_SANITIZE_STRING,
+				'auction_title'		=> FILTER_SANITIZE_STRING,
+				'auction_date'		=> FILTER_SANITIZE_STRING,
 				'lot_title'			=> FILTER_SANITIZE_STRING,
 				'lot_criteria'		=> FILTER_SANITIZE_STRING,
 				'lot_estimates'		=> FILTER_SANITIZE_STRING,
@@ -390,9 +402,11 @@ class candidate extends commun {
 				'img_thumbnail'		=> FILTER_SANITIZE_STRING,
 				'img_medium'		=> FILTER_SANITIZE_STRING,
 				'img_full'			=> FILTER_SANITIZE_STRING,
-				'info'			=> FILTER_SANITIZE_STRING,
+				'info'				=> FILTER_SANITIZE_STRING,
 				//user validated fields
 				'product_identifier'			=> FILTER_SANITIZE_STRING,
+				'validated_title'				=> FILTER_SANITIZE_STRING,
+				'validated_description'			=> FILTER_SANITIZE_STRING,
 				'hidden_validated_brand'		=> FILTER_SANITIZE_STRING,
 				'hidden_validated_model'		=> FILTER_SANITIZE_STRING,
 				'validated_ref'					=> FILTER_SANITIZE_STRING,
@@ -401,20 +415,22 @@ class candidate extends commun {
 				'hidden_validated_bracelet'		=> FILTER_SANITIZE_STRING,
 				'hidden_validated_movement'		=> FILTER_SANITIZE_STRING,
 				'hidden_validated_complication'	=> FILTER_SANITIZE_STRING,
+				'validated_estimation'			=> FILTER_SANITIZE_STRING,
 				'validated_price'				=> FILTER_SANITIZE_STRING,
 				'validated_currency'			=> FILTER_SANITIZE_STRING,
+				'validated_image'				=> FILTER_SANITIZE_STRING,
 			);
 		} else {
 			$args = array(
-				'action'		=> FILTER_SANITIZE_STRING,
-				'id'			=> FILTER_SANITIZE_NUMBER_INT,
+				'action'			=> FILTER_SANITIZE_STRING,
+				'id'				=> FILTER_SANITIZE_NUMBER_INT,
 				//gathered fields
 				'auction_id'		=> FILTER_SANITIZE_STRING,
 				'lot_id'			=> FILTER_SANITIZE_STRING,
-				'source'		=> FILTER_SANITIZE_STRING,
+				'source'			=> FILTER_SANITIZE_STRING,
 				'source_url'		=> FILTER_SANITIZE_STRING,
-				'auction_title'	=> FILTER_SANITIZE_STRING,
-				'auction_date'	=> FILTER_SANITIZE_STRING,
+				'auction_title'		=> FILTER_SANITIZE_STRING,
+				'auction_date'		=> FILTER_SANITIZE_STRING,
 				'lot_title'			=> FILTER_SANITIZE_STRING,
 				'lot_criteria'		=> FILTER_SANITIZE_STRING,
 				'lot_estimates'		=> FILTER_SANITIZE_STRING,
@@ -423,7 +439,7 @@ class candidate extends commun {
 				'img_thumbnail'		=> FILTER_SANITIZE_STRING,
 				'img_medium'		=> FILTER_SANITIZE_STRING,
 				'img_full'			=> FILTER_SANITIZE_STRING,
-				'info'			=> FILTER_SANITIZE_STRING,
+				'info'				=> FILTER_SANITIZE_STRING,
 			);
 		}
 
@@ -602,6 +618,20 @@ class candidate extends commun {
 				$formData['product_identifier'] = trim($product_identifier);
 			}
 
+			//validated_title
+			if( !isset($validated_title) || is_null($validated_title) || $validated_title === false ){
+				$formData['validated_title'] = null;
+			} else {
+				$formData['validated_title'] = trim($validated_title);
+			}
+
+			//validated_description
+			if( !isset($validated_description) || is_null($validated_description) || $validated_description === false ){
+				$formData['validated_description'] = null;
+			} else {
+				$formData['validated_description'] = trim($validated_description);
+			}
+
 			//validated_brand
 			if( !isset($hidden_validated_brand) || is_null($hidden_validated_brand) || $hidden_validated_brand === false ){
 				$formData['validated_brand'] = null;
@@ -658,6 +688,13 @@ class candidate extends commun {
 				$formData['validated_complication'] = trim($hidden_validated_complication);
 			}
 
+			//validated_estimation
+			if( !isset($validated_estimation) || is_null($validated_estimation) || $validated_estimation === false ){
+				$formData['validated_estimation'] = null;
+			} else {
+				$formData['validated_estimation'] = trim($validated_estimation);
+			}
+
 			//validated_price
 			if( !isset($validated_price) || is_null($validated_price) || $validated_price === false ){
 				$formData['validated_price'] = null;
@@ -670,6 +707,13 @@ class candidate extends commun {
 				$formData['validated_currency'] = null;
 			} else {
 				$formData['validated_currency'] = trim($validated_currency);
+			}
+
+			//validated_image
+			if( !isset($validated_image) || is_null($validated_image) || $validated_image === false ){
+				$formData['validated_image'] = null;
+			} else {
+				$formData['validated_image'] = trim($validated_image);
 			}
 		}
 

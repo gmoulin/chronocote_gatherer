@@ -1688,13 +1688,27 @@ var progress = function( msg, cssClass ){
 				if( $form.data('save_clicked') !== 1 ){
 					$form.data('save_clicked', 1);
 
-					var item = items[ $form.find('#lot_id').val() ];
+					var itemId = $form.find('#lot_id').val(),
+						item = items[ itemId ];
 
-					$form.find('input').each(function(){
+					$form.find('input, textarea').each(function(){
 						if( this.name ){
 							item[ this.name ] = this.value;
 						}
 					});
+
+					//set chosen image
+					item.validated_image = $form.find('input[type="radio"]').filter('[name="validated_image"]').filter(':checked').val();
+
+					//set corresponding hidden fields
+					item.validated_bracelet = item.hidden_validated_bracelet;
+					item.validated_brand = item.hidden_validated_brand;
+					item.validated_case = item.hidden_validated_case;
+					item.validated_complication = item.hidden_validated_complication;
+					item.validated_model = item.hidden_validated_model;
+					item.validated_movement = item.hidden_validated_movement;
+					item.validated_movement = item.hidden_validated_movement;
+					item.validated_shape = item.hidden_validated_shape;
 
 					if( debug ) console.debug('edit form submit', item);
 
@@ -1714,6 +1728,9 @@ var progress = function( msg, cssClass ){
 
 							//inform user
 							$notify.notify({message: {text: 'Enregistrement réussi.'}, type: 'success'}).show();
+
+							//update items object
+							items[ itemId ] = item;
 
 							if( $form.find('#action').val() == 'send' ){
 								$.ajax({
@@ -1785,8 +1802,8 @@ var progress = function( msg, cssClass ){
 			e.preventDefault();
 
 			var $this = $(this),
-				decoder = $('<textarea>'),
-				data = {item: items[ $this.attr('data-itemId') ]};
+				item = items[ $this.attr('data-itemId') ],
+				data = {item: item};
 
 			//reseting form
 			$form
@@ -1798,7 +1815,9 @@ var progress = function( msg, cssClass ){
 				//remove validation classes and focus the first field
 				$form
 					.find('.tm-input').each(function(){
-						$(this)
+						var $this = $(this);
+
+						$this
 							.tagsManager({
 								CapitalizeFirstLetter: false,
 								preventSubmitOnEnter: true,
@@ -1811,13 +1830,15 @@ var progress = function( msg, cssClass ){
 								backspace: [8],
 								deleteTagsOnBackspace: true,
 								hiddenTagListName: 'hidden_'+ this.name
-							})
-							.blur(function(e){
-								if( this.value !== '' ){
-									$(this).tagsManager('pushTag', this.value);
-								}
 							});
 
+						if( item[ this.name ] !== '' ){
+							var tmp = item[ this.name ].split(',');
+
+							for( var i = 0, l = tmp.length; i < l; i++ ){
+								$this.tagsManager('pushTag', tmp[ i ]);
+							}
+						}
 					}).end()
 					.find('select').blur().end()
 					.find('input').filter('[type="text"]').first().focus();
@@ -1847,6 +1868,8 @@ var progress = function( msg, cssClass ){
 				img_full: null,
 				modified_date: null,
 				product_identifier: null,
+				validated_title: null,
+				validated_description: null,
 				validated_brand: null,
 				validated_model: null,
 				validated_ref: null,
