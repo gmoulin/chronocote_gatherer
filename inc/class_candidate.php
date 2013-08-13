@@ -661,10 +661,10 @@ class candidate extends commun {
 			}
 
 			//validated_shape
-			if( !isset($hidden_validated_shape) || is_null($hidden_validated_shape) || $hidden_validated_case === false ){
+			if( !isset($hidden_validated_shape) || is_null($hidden_validated_shape) || $hidden_validated_shape === false ){
 				$formData['validated_shape'] = null;
 			} else {
-				$formData['validated_shape'] = trim($hidden_validated_case);
+				$formData['validated_shape'] = trim($hidden_validated_shape);
 			}
 
 			//validated_bracelet

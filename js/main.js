@@ -1707,14 +1707,19 @@ var progress = function( msg, cssClass ){
 					item.validated_complication = item.hidden_validated_complication;
 					item.validated_model = item.hidden_validated_model;
 					item.validated_movement = item.hidden_validated_movement;
-					item.validated_movement = item.hidden_validated_movement;
 					item.validated_shape = item.hidden_validated_shape;
+
+					// encode urls
+					var encoded_item = $.extend({}, item); //copy
+					encoded_item.img_thumbnail = $.base64.encode( item.img_thumbnail );
+					encoded_item.img_medium = $.base64.encode( item.img_medium );
+					encoded_item.img_full = $.base64.encode( item.img_full );
 
 					if( debug ) console.debug('edit form submit', item);
 
 					$.ajax({
 						url: 'ajax.php',
-						data: $.param( item ),
+						data: $.param( encoded_item ),
 						method: 'POST',
 						dataType: 'json'
 					})
@@ -1759,6 +1764,7 @@ var progress = function( msg, cssClass ){
 				}
 			})
 			.on('change', 'input[name="hidden_validated_brand"], input[name="hidden_validated_model"], #validated_ref', function(){
+				console.log('change');
 				var brand = $form.find('input[name="hidden_validated_brand"]').val().replace(/ /g, '-').replace(/,/g, '_'),
 					model = $form.find('input[name="hidden_validated_model"]').val().replace(/ /g, '-').replace(/,/g, '_'),
 					ref = $form.find('#validated_ref').val().replace(/ /g, '-'),
@@ -1782,6 +1788,11 @@ var progress = function( msg, cssClass ){
 
 				$form.find('#product_identifier').val( identifier );
 			})
+			.on('blur', '.tm-input', function(){
+				if( this.value !== '' ){
+					$(this).tagsManager('pushTag', this.value);
+				}
+			})
 			.each(function(){
 				//add event listener for dynamic form validation
 				this.addEventListener("invalid", checkField, true);
@@ -1802,8 +1813,8 @@ var progress = function( msg, cssClass ){
 			e.preventDefault();
 
 			var $this = $(this),
-				item = items[ $this.attr('data-itemId') ],
-				data = {item: item};
+				edited_item = items[ $this.attr('data-itemId') ],
+				data = {item: edited_item};
 
 			//reseting form
 			$form
@@ -1812,12 +1823,9 @@ var progress = function( msg, cssClass ){
 				.find('.wrapper').html( tmpl('form_tmpl', data) );
 
 			window.setTimeout(function(){
-				//remove validation classes and focus the first field
 				$form
 					.find('.tm-input').each(function(){
-						var $this = $(this);
-
-						$this
+						$(this)
 							.tagsManager({
 								CapitalizeFirstLetter: false,
 								preventSubmitOnEnter: true,
@@ -1829,18 +1837,10 @@ var progress = function( msg, cssClass ){
 								delimiters: [13, 44],
 								backspace: [8],
 								deleteTagsOnBackspace: true,
-								hiddenTagListName: 'hidden_'+ this.name
+								hiddenTagListName: 'hidden_'+ this.name,
+								hiddenTagListId: 'hidden_'+ this.name
 							});
-
-						if( item[ this.name ] !== '' ){
-							var tmp = item[ this.name ].split(',');
-
-							for( var i = 0, l = tmp.length; i < l; i++ ){
-								$this.tagsManager('pushTag', tmp[ i ]);
-							}
-						}
 					}).end()
-					.find('select').blur().end()
 					.find('input').filter('[type="text"]').first().focus();
 			}, 300);
 		});
@@ -1878,6 +1878,7 @@ var progress = function( msg, cssClass ){
 				validated_bracelet: null,
 				validated_movement: null,
 				validated_complication: null,
+				validated_estimation: null,
 				validated_price: null,
 				validated_currency: null
 			}}) );

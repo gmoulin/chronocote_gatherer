@@ -126,14 +126,16 @@
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_brand">Marque</label>
 			<div class="controls span9">
-				<input type="text" id="validated_brand" name="validated_brand" class="control input-large tm-input" value="<%=item.product_identifier%>" autocomplete="off">
+				<input type="text" id="validated_brand" name="validated_brand" class="control input-large tm-input" value="" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_brand" name="hidden_validated_brand" value="<%=item.validated_brand%>">
 		</div>
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_model">Modèle</label>
 			<div class="controls span9">
-				<input type="text" id="validated_model" name="validated_model" class="control input-large tm-input" value="<%=item.validated_model%>" autocomplete="off">
+				<input type="text" id="validated_model" name="validated_model" class="control input-large tm-input" value="" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_model" name="hidden_validated_model" value="<%=item.validated_model%>">
 		</div>
 		<div class="control-group row-fluid">
 			<label class="control-label span3" for="validated_ref">Référence</label>
@@ -144,32 +146,37 @@
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_case">Matériau Boîtier</label>
 			<div class="controls span9">
-				<input type="text" id="validated_case" name="validated_case" class="control input-small tm-input" value="<%=item.validated_case%>" autocomplete="off">
+				<input type="text" id="validated_case" name="validated_case" class="control input-small tm-input" value="" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_case" name="hidden_validated_case" value="<%=item.validated_case%>">
 		</div>
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_shape">Forme Boîtier</label>
 			<div class="controls span9">
-				<input type="text" id="validated_shape" name="validated_shape" class="control input-large tm-input" value="<%=item.validated_shape%>" autocomplete="off">
+				<input type="text" id="validated_shape" name="validated_shape" class="control input-large tm-input" value="" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_shape" name="hidden_validated_shape" value="<%=item.validated_shape%>">
 		</div>
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_bracelet">Bracelet</label>
 			<div class="controls span9">
 				<input type="text" id="validated_bracelet" name="validated_bracelet" class="control input-small tm-input" value="<%=item.validated_bracelet%>" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_bracelet" name="hidden_validated_bracelet" value="">
 		</div>
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_movement">Mouvement</label>
 			<div class="controls span9">
-				<input type="text" id="validated_movement" name="validated_movement" class="control input-small tm-input" value="<%=item.validated_movement%>" autocomplete="off">
+				<input type="text" id="validated_movement" name="validated_movement" class="control input-small tm-input" value="" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_movement" name="hidden_validated_movement" value="<%=item.validated_movement%>">
 		</div>
 		<div class="control-group row-fluid tm-group">
 			<label class="control-label span3" for="validated_complication">Complication</label>
 			<div class="controls span9">
-				<input type="text" id="validated_complication" name="validated_complication" class="control input-large tm-input" value="<%=item.validated_complication%>" autocomplete="off">
+				<input type="text" id="validated_complication" name="validated_complication" class="control input-large tm-input" value="" autocomplete="off">
 			</div>
+			<input type="hidden" id="hidden_validated_complication" name="hidden_validated_complication" value="<%=item.validated_complication%>">
 		</div>
 		<div class="control-group row-fluid">
 			<label class="control-label span3" for="validated_estimation">Estimation</label>
