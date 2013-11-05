@@ -6,6 +6,7 @@ publish
 publish/**/*
 .sass-cache
 .sass-cache/**/*
-
 # backup files
 *~
+# tags file
+tags

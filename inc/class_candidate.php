@@ -47,7 +47,7 @@ class candidate extends commun {
 	 */
 	public function getCandidateById( $id ){
 		try {
-			$getCandidate = $this->db->prepare("
+			$getcandidate = $this->db->prepare("
 				SELECT *
 				FROM candidate
 				WHERE id = :id
@@ -194,6 +194,42 @@ class candidate extends commun {
 				':id' => $id,
 				':status' => $status,
 			);
+
+			if( $status == 'sent' ){
+				$cleanCandidate = $this->db->prepare("
+					UPDATE candidate
+					SET auction_title = NULL,
+						auction_date = NULL,
+						auction_timestamp = NULL,
+						lot_title = NULL,
+						lot_criteria = NULL,
+						lot_estimates = NULL,
+						lot_price = NULL,
+						lot_currency = NULL,
+						info = NULL,
+						img_thumbnail = NULL,
+						img_medium = NULL,
+						img_full = NULL,
+						product_identifier = NULL,
+						validated_title = NULL,
+						validated_description = NULL,
+						validated_brand = NULL,
+						validated_model = NULL,
+						validated_ref = NULL,
+						validated_case = NULL,
+						validated_shape = NULL,
+						validated_bracelet = NULL,
+						validated_movement = NULL,
+						validated_complication = NULL,
+						validated_estimation = NULL,
+						validated_price = NULL,
+						validated_currency = NULL,
+						validated_image = NULL
+					WHERE id = :id
+				");
+
+				$delCandidate->execute( array( ':id' => $id ) );
+			}
 
 			$updateStatus->execute( $params );
 

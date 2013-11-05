@@ -1709,7 +1709,7 @@ var progress = function( msg, cssClass ){
 					item.validated_movement = item.hidden_validated_movement;
 					item.validated_shape = item.hidden_validated_shape;
 
-					// encode urls
+					// encode urls to match server awaited format
 					var encoded_item = $.extend({}, item); //copy
 					encoded_item.img_thumbnail = $.base64.encode( item.img_thumbnail );
 					encoded_item.img_medium = $.base64.encode( item.img_medium );
