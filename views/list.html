@@ -5,6 +5,9 @@
 		item = list[i];
 	%>
 		<tr class="item">
+			<td class="multi-selection">
+				<input type="checkbox" value="<%=item.id%>">
+			</td>
 			<td class="actions">
 				<button class="btn edit btn-warning btn-mini"
 					data-toggle="modal" data-target="#edit_modal"

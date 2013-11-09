@@ -1,0 +1,18 @@
+<div id="multi_confirm_modal" class="modal hide fade multi-confirm-modal">
+	<div class="modal-header">
+		<button class="close" data-dismiss="modal"><i class="icon-remove-sign"></i></button>
+		<h3>Confirmation de suppression multiple</h3>
+	</div>
+	<div class="modal-body">
+		<form id="multi_delete_form" name="multi_delete_form" method="post" action="" class="multi-delete-form">
+			<input type="hidden" name="action" value="multi-delete" />
+			<input type="hidden" name="ids" value="" />
+
+			<p class="lead">Êtes-vous sûre ?</p>
+		</form>
+	</div>
+	<div class="modal-footer">
+		<button type="reset" class="btn btn-warning" data-dismiss="modal">Annuler</button>
+		<button type="submit" class="btn btn-primary" form="multi_delete_form">Confirmer</button>
+	</div>
+</div>

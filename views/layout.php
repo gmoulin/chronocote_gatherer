@@ -10,6 +10,7 @@ include('html_header.php');
 				<span class="icon-bar"></span>
 			</a>
 
+			<button id="multiple-delete" class="btn btn-danger pull-right offset1"><i class="icon-trash"></i> Suppression multiple</button>
 			<button id="parse" class="btn btn-primary pull-right">Vérifier le site pour de nouveaux lots</button>
 
 			<a class="brand" href="#">Gatherer</a>
@@ -79,6 +80,7 @@ include('views/form.html');
 
 //delete confirm
 include('views/confirm.html');
+include('views/multi-confirm.html');
 
 //progression modal
 include('views/progression.html');

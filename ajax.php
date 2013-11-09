@@ -505,6 +505,28 @@ try {
 				$oCandidate->delCandidate( $id );
 				$response = 'ok';
 			break;
+		case 'multi-delete':
+				$ids = filter_has_var(INPUT_POST, 'ids');
+				if( is_null($ids) || $ids === false ){
+					throw new Exception('identitifants des candidats manquant.');
+				}
+
+				$ids = explode(',', $ids);
+
+				foreach( $ids as $id ){
+					$id = filter_var($id, FILTER_VALIDATE_INT, array('min_range' => 1));
+					if( $id === false ){
+						throw new Exception('identifiant incorrect.');
+					}
+				}
+
+				foreach( $ids as $id ){
+					$ocandidate = new candidate();
+					$ocandidate->delcandidate( $id );
+				}
+
+				$response = 'ok';
+			break;
 		case 'list':
 				$target = filter_has_var(INPUT_POST, 'target');
 				if( is_null($target) || $target === false ){

@@ -1,4 +1,4 @@
-var $body, $win, $doc, $formModal, $form, $confirmModal,
+var $body, $win, $doc, $formModal, $form, $confirmModal, $multiConfirmModal,
 	$progressionModal, $progressionModalBody,
 	$parts, $navLinks, $listContainer, $help,
 	$lightboxImg, $notify,
@@ -1639,6 +1639,7 @@ var progress = function( msg, cssClass ){
 	$formModal = $('#edit_modal').modal({show: false});
 	$form = $('#edit_form');
 	$confirmModal = $('#confirm_modal');
+	$multiConfirmModal = $('#multi_confirm_modal');
 	$progressionModal = $('#progression_modal');
 	$progressionModalBody = $progressionModal.find('.modal-body');
 
@@ -1709,7 +1710,7 @@ var progress = function( msg, cssClass ){
 					item.validated_movement = item.hidden_validated_movement;
 					item.validated_shape = item.hidden_validated_shape;
 
-					// encode urls to match server awaited format
+					// encode urls to match needed format
 					var encoded_item = $.extend({}, item); //copy
 					encoded_item.img_thumbnail = $.base64.encode( item.img_thumbnail );
 					encoded_item.img_medium = $.base64.encode( item.img_medium );
@@ -1764,7 +1765,7 @@ var progress = function( msg, cssClass ){
 				}
 			})
 			.on('change', 'input[name="hidden_validated_brand"], input[name="hidden_validated_model"], #validated_ref', function(){
-				console.log('change');
+				//console.log('change');
 				var brand = $form.find('input[name="hidden_validated_brand"]').val().replace(/ /g, '-').replace(/,/g, '_'),
 					model = $form.find('input[name="hidden_validated_model"]').val().replace(/ /g, '-').replace(/,/g, '_'),
 					ref = $form.find('#validated_ref').val().replace(/ /g, '-'),
@@ -1932,6 +1933,59 @@ var progress = function( msg, cssClass ){
 			}
 		});
 
+		$('#multiple-delete').click(function( e ){
+			var $list = $('#list_'+ activeTab),
+				$selected = $list.find('.multi-selection').find('input').filter(':checked');
+
+			if( $selected.length > 0 ){
+				$multiConfirmModal.modal('show');
+
+				var $form = $multiConfirmModal.find('.multi-delete-form'),
+					ids = $selected.map(function(){ return this.value; }).get().join(',');
+
+				console.log(ids);
+
+				//modify modal according to rel
+				$form.find('input').filter('[name="ids"]').val( ids );
+
+				$form
+					.data('save_clicked', 0)
+					.data('selected', $selected);
+
+			} else {
+				$notify.notify({message: {text: 'Aucun lot sélectionné'}, type: 'error'}).show();
+			}
+		});
+
+		$('.multi-delete-form').submit(function( e ){
+			e.preventDefault();
+			var $this = $(this);
+
+			//multiple call protection
+			if( $this.data('save_clicked') != 1 ){
+				$this.data('save_clicked', 1);
+
+				//send delete
+				$.post('ajax.php', $this.serialize(), function( data ){
+					if( data == 'ok' ){
+						//inform user
+						$notify.notify({message: {text: 'Suppression réussie'}, type: 'success'}).show();
+
+						//remove deleted item from list
+						$this.data('selected').closest('.item').remove();
+
+						//modal close
+						$multiConfirmModal.modal('hide');
+
+					} else {
+						$notify.notify({message: {text: 'Échec de la suppression. Veuillez recharger la page.'}, type: 'error'}).show();
+						//form errors display
+						//formErrors( data );
+					}
+				});
+			}
+		});
+
 	/** _____________________________________________ PARSE ACTION **/
 		$('#parse').click(function(e){
 			e.preventDefault();
@@ -1947,7 +2001,7 @@ var progress = function( msg, cssClass ){
 			parseTarget();
 		});
 
-	/** _____________________________________________ PARSE ACTION **/
+	/** _____________________________________________ PROGRESS ACTIONS **/
 		$progressionModal
 			.on('click', '.stop', function(){
 				stop = true;
